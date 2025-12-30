@@ -3,10 +3,10 @@ from datetime import datetime
 from typing import List, Literal, Optional, Tuple
 
 import numpy as np
-
 from planning_through_contact.experiments.ablation_study.planar_pushing_ablation import (
     run_ablation,
 )
+
 from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
 from planning_through_contact.geometry.collision_geometry.t_pusher_2d import TPusher2d
 from planning_through_contact.geometry.collision_geometry.vertex_defined_geometry import (
@@ -29,9 +29,7 @@ from planning_through_contact.planning.planar.utils import (
 )
 
 
-def create_output_folder(
-    output_dir: str, slider_type: str, traj_number: Optional[int]
-) -> str:
+def create_output_folder(output_dir: str, slider_type: str, traj_number: Optional[int]) -> str:
     os.makedirs(output_dir, exist_ok=True)
     folder_name = f"{output_dir}/run_{get_time_as_str()}_{slider_type}"
     if traj_number is not None:
@@ -162,9 +160,7 @@ def get_default_plan_config(
     else:
         raise NotImplementedError(f"Slider type {slider_type} not supported")
 
-    if (
-        use_case == "hardware"
-    ):  # this is the config used for generating plans for hardware demos
+    if use_case == "hardware":  # this is the config used for generating plans for hardware demos
         slider_pusher_config = SliderPusherSystemConfig(
             slider=slider,
             pusher_radius=pusher_radius,
@@ -176,9 +172,7 @@ def get_default_plan_config(
         contact_cost = get_hardware_contact_cost()
         non_collision_cost = get_hardware_non_collision_cost()
         buffer_to_corners = 0.25
-        contact_config = ContactConfig(
-            cost=contact_cost, lam_min=buffer_to_corners, lam_max=1 - buffer_to_corners
-        )
+        contact_config = ContactConfig(cost=contact_cost, lam_min=buffer_to_corners, lam_max=1 - buffer_to_corners)
         time_contact = 5.0
         time_non_collision = 2.0
 
@@ -195,9 +189,7 @@ def get_default_plan_config(
         contact_cost = get_default_contact_cost()
         non_collision_cost = get_default_non_collision_cost()
         buffer_to_corners = 0.0
-        contact_config = ContactConfig(
-            cost=contact_cost, lam_min=buffer_to_corners, lam_max=1 - buffer_to_corners
-        )
+        contact_config = ContactConfig(cost=contact_cost, lam_min=buffer_to_corners, lam_max=1 - buffer_to_corners)
 
         time_contact = 1.5
         time_non_collision = 0.75
@@ -216,9 +208,7 @@ def get_default_plan_config(
         contact_cost = get_default_contact_cost()
         non_collision_cost = get_default_non_collision_cost()
         buffer_to_corners = 0.0
-        contact_config = ContactConfig(
-            cost=contact_cost, lam_min=buffer_to_corners, lam_max=1 - buffer_to_corners
-        )
+        contact_config = ContactConfig(cost=contact_cost, lam_min=buffer_to_corners, lam_max=1 - buffer_to_corners)
 
         time_contact = 4.0
         time_non_collision = 2.0
@@ -243,9 +233,7 @@ def get_default_plan_config(
     return plan_cfg
 
 
-def get_default_solver_params(
-    debug: bool = False, clarabel: bool = False
-) -> PlanarSolverParams:
+def get_default_solver_params(debug: bool = False, clarabel: bool = False) -> PlanarSolverParams:
     solver_params = PlanarSolverParams(
         measure_solve_time=debug,
         rounding_steps=100,
@@ -265,9 +253,7 @@ def get_default_solver_params(
     return solver_params
 
 
-def get_hardware_plans(
-    hardware_seed: int, config: PlanarPlanConfig
-) -> List[PlanarPushingStartAndGoal]:
+def get_hardware_plans(hardware_seed: int, config: PlanarPlanConfig) -> List[PlanarPushingStartAndGoal]:
     """
     Generates a collection of plans that can be run on our hardware setup with the Kuka Iiwa, with the right workspace
     and origin.
@@ -331,7 +317,10 @@ def run_ablation_with_default_config(
     filename: Optional[str] = None,
 ) -> None:
     config = get_default_plan_config(
-        slider_type, pusher_radius, integration_constant, arc_length_weight  # type: ignore
+        slider_type,
+        pusher_radius,
+        integration_constant,
+        arc_length_weight,  # type: ignore
     )
     solver_params = get_default_solver_params()
     run_ablation(config, solver_params, num_experiments, filename)  # type: ignore

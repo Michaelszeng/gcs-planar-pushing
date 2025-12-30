@@ -18,9 +18,7 @@ from planning_through_contact.geometry.rigid_body import RigidBody
 class BoxWorkspace:
     width: float = 0.5
     height: float = 0.5
-    center: npt.NDArray[np.float64] = field(
-        default_factory=lambda: np.array([0.0, 0.0])
-    )
+    center: npt.NDArray[np.float64] = field(default_factory=lambda: np.array([0.0, 0.0]))
     buffer: float = 0.0
 
     @property
@@ -52,27 +50,21 @@ class BoxWorkspace:
 @dataclass
 class PlanarPushingWorkspace:
     slider: BoxWorkspace = field(
-        default_factory=lambda: BoxWorkspace(
-            width=1.0, height=1.0, center=np.array([0.0, 0.0]), buffer=0.0
-        )
+        default_factory=lambda: BoxWorkspace(width=1.0, height=1.0, center=np.array([0.0, 0.0]), buffer=0.0)
     )
 
 
 @dataclass
 class SliderPusherSystemConfig:
     slider: RigidBody = field(
-        default_factory=lambda: RigidBody(
-            name="box", geometry=Box2d(width=0.15, height=0.15), mass=0.1
-        )
+        default_factory=lambda: RigidBody(name="box", geometry=Box2d(width=0.15, height=0.15), mass=0.1)
     )
     pusher_radius: float = 0.015
     friction_coeff_table_slider: float = 0.5
     friction_coeff_slider_pusher: float = 0.1
     grav_acc: float = 9.81
     integration_constant: float = 0.6
-    force_scale: float = (
-        0.01  # Scaling of the forces to make the optimization program better posed
-    )
+    force_scale: float = 0.01  # Scaling of the forces to make the optimization program better posed
 
     @cached_property
     def f_max(self) -> float:
@@ -103,9 +95,7 @@ class PlanarSolverParams:
     max_rounding_trials: int = (
         10000  # number of rounding trials to find paths in the graph BEFORE solving any ConvexRestriction
     )
-    gcs_convex_relaxation: bool = (
-        True  # NOTE: Currently, there is no way to solve the MISDP, so this must be true
-    )
+    gcs_convex_relaxation: bool = True  # NOTE: Currently, there is no way to solve the MISDP, so this must be true
     print_flows: bool = False
     assert_determinants: bool = False  # TODO: Remove this
     assert_result: bool = True
@@ -121,12 +111,8 @@ class PlanarSolverParams:
     print_rounding_details: bool = False
     solver: Literal["mosek", "clarabel"] = "mosek"
     get_rounded_and_original_traj: bool = False
-    nonl_round_major_feas_tol: float = (
-        1e-3  # Feasibility treshold for nonlinear rounding
-    )
-    nonl_round_minor_feas_tol: float = (
-        1e-4  # Feasibility treshold for nonlinear rounding
-    )
+    nonl_round_major_feas_tol: float = 1e-3  # Feasibility treshold for nonlinear rounding
+    nonl_round_minor_feas_tol: float = 1e-4  # Feasibility treshold for nonlinear rounding
     nonl_round_opt_tol: float = 1e-4  # Optimality treshold for nonlinear rounding
     nonl_rounding_save_solver_output: bool = False
     # nonl_round_major_feas_tol: float = (
@@ -156,9 +142,7 @@ class NonCollisionCost:
         return self.distance_to_object is not None
 
     def __str__(self) -> str:
-        field_strings = [
-            f"{field.name}: {getattr(self, field.name)}" for field in fields(self)
-        ]
+        field_strings = [f"{field.name}: {getattr(self, field.name)}" for field in fields(self)]
         return "\n".join(field_strings)
 
 
@@ -173,9 +157,7 @@ class ContactCost:
     time: Optional[float] = None
 
     def __str__(self) -> str:
-        field_strings = [
-            f"{field.name}: {getattr(self, field.name)}" for field in fields(self)
-        ]
+        field_strings = [f"{field.name}: {getattr(self, field.name)}" for field in fields(self)]
         return "\n".join(field_strings)
 
 
@@ -191,9 +173,7 @@ class ContactConfig:
     keypoint_velocity_constraint: Optional[float] = None
 
     def __str__(self) -> str:
-        field_strings = [
-            f"{field.name}: {getattr(self, field.name)}" for field in fields(self)
-        ]
+        field_strings = [f"{field.name}: {getattr(self, field.name)}" for field in fields(self)]
         return "\n".join(field_strings)
 
 
@@ -217,9 +197,7 @@ class PlanarPushingStartAndGoal:
         )
 
     def __str__(self) -> str:
-        field_strings = [
-            f"{field.name}: {getattr(self, field.name)}" for field in fields(self)
-        ]
+        field_strings = [f"{field.name}: {getattr(self, field.name)}" for field in fields(self)]
         return "\n".join(field_strings)
 
 
@@ -229,24 +207,19 @@ class PlanarPlanConfig:
     start_and_goal: Optional[PlanarPushingStartAndGoal] = None
     num_knot_points_contact: int = 4
     num_knot_points_non_collision: int = 2
-    time_in_contact: float = 2  # TODO: remove, no time
-    time_non_collision: float = 0.5  # TODO: remove, there is no time
-    continuity_on_pusher_velocity: bool = (
-        False  # TODO: Move this into a NonCollisionConfig
-    )
+    time_in_contact: float = 2
+    time_non_collision: float = 0.5
+    time_first_mode: Optional[float] = None  # Used for MPC, when the mode sequence is fixed
+    continuity_on_pusher_velocity: bool = False  # TODO: Move this into a NonCollisionConfig
     allow_teleportation: bool = False
     use_eq_elimination: bool = False  # TODO: Remove
     use_entry_and_exit_subgraphs: bool = True
     no_cycles: bool = False  # TODO: remove, not used
     workspace: Optional[PlanarPushingWorkspace] = None
-    dynamics_config: SliderPusherSystemConfig = field(
-        default_factory=lambda: SliderPusherSystemConfig()
-    )
+    dynamics_config: SliderPusherSystemConfig = field(default_factory=lambda: SliderPusherSystemConfig())
     use_band_sparsity: bool = True
     # TODO(bernhardpg): Refactor these cost terms into a struct
-    non_collision_cost: NonCollisionCost = field(
-        default_factory=lambda: NonCollisionCost()
-    )
+    non_collision_cost: NonCollisionCost = field(default_factory=lambda: NonCollisionCost())
     contact_config: ContactConfig = field(default_factory=lambda: ContactConfig())
     use_approx_exponential_map: bool = False
 
@@ -267,7 +240,5 @@ class PlanarPlanConfig:
         return self.dynamics_config.pusher_radius
 
     def __str__(self) -> str:
-        field_strings = [
-            f"{field.name}: {getattr(self, field.name)}" for field in fields(self)
-        ]
+        field_strings = [f"{field.name}: {getattr(self, field.name)}" for field in fields(self)]
         return "\n".join(field_strings)

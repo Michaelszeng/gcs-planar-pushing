@@ -54,15 +54,18 @@ class PlanarPushingPlanner:
 
         self.source = None
         self.target = None
+
+        # Maintain dict copy of edges in GCS for O(1) indexing by edge name.
+        self.edges: Dict[Tuple[str, str], GcsEdge] = {}
+
+        # Dict containing VertexModePairs for extra vertices (used by PlanarPushingMPC when adding new vertices with
+        # modified timing)
+        self.extra_vertex_mode_pairs: Dict[str, VertexModePair] = {}
+
         self.relaxed_gcs_result = None
 
-        if (
-            self.config.non_collision_cost.avoid_object
-            and config.num_knot_points_non_collision <= 2
-        ):
-            raise ValueError(
-                "It is not possible to avoid object with only 2 knot points."
-            )
+        if self.config.non_collision_cost.avoid_object and config.num_knot_points_non_collision <= 2:
+            raise ValueError("It is not possible to avoid object with only 2 knot points.")
 
         # TODO(bernhardpg): should just extract faces, rather than relying on the
         # object to only pass faces as contact locations
@@ -104,43 +107,31 @@ class PlanarPushingPlanner:
         ]
 
         for mode in self.contact_modes:
-            mode.add_so2_cut(
-                self.slider_pose_initial.theta, self.slider_pose_target.theta
-            )
+            mode.add_so2_cut(self.slider_pose_initial.theta, self.slider_pose_target.theta)
 
     def _build_graph(self):
-        self.contact_vertices = [
-            self.gcs.AddVertex(mode.get_convex_set(), mode.name)
-            for mode in self.contact_modes
-        ]
+        self.contact_vertices = [self.gcs.AddVertex(mode.get_convex_set(), mode.name) for mode in self.contact_modes]
 
-        self.edges = {}
         if self.config.allow_teleportation:
             for i, j in combinations(range(self.num_contact_modes), 2):
-                self.edges[(self.contact_modes[i].name, self.contact_modes[j].name)] = (
-                    gcs_add_edge_with_continuity(
-                        self.gcs,
-                        VertexModePair(self.contact_vertices[i], self.contact_modes[i]),
-                        VertexModePair(self.contact_vertices[j], self.contact_modes[j]),
-                        only_continuity_on_slider=True,
-                    )
+                self.edges[(self.contact_modes[i].name, self.contact_modes[j].name)] = gcs_add_edge_with_continuity(
+                    self.gcs,
+                    VertexModePair(self.contact_vertices[i], self.contact_modes[i]),
+                    VertexModePair(self.contact_vertices[j], self.contact_modes[j]),
+                    only_continuity_on_slider=True,
                 )
-                self.edges[(self.contact_modes[j].name, self.contact_modes[i].name)] = (
-                    gcs_add_edge_with_continuity(
-                        self.gcs,
-                        VertexModePair(self.contact_vertices[j], self.contact_modes[j]),
-                        VertexModePair(self.contact_vertices[i], self.contact_modes[i]),
-                        only_continuity_on_slider=True,
-                    )
+                self.edges[(self.contact_modes[j].name, self.contact_modes[i].name)] = gcs_add_edge_with_continuity(
+                    self.gcs,
+                    VertexModePair(self.contact_vertices[j], self.contact_modes[j]),
+                    VertexModePair(self.contact_vertices[i], self.contact_modes[i]),
+                    only_continuity_on_slider=True,
                 )
         else:
             # connect contact modes through NonCollisionSubGraphs
             connections = list(combinations(range(self.num_contact_modes), 2))
 
             self.subgraphs = [
-                self._build_subgraph_between_contact_modes(
-                    mode_i, mode_j, self.config.no_cycles
-                )
+                self._build_subgraph_between_contact_modes(mode_i, mode_j, self.config.no_cycles)
                 for mode_i, mode_j in connections
             ]
 
@@ -150,6 +141,10 @@ class PlanarPushingPlanner:
 
         self._set_initial_poses(self.pusher_pose_initial, self.slider_pose_initial)
         self._set_target_poses(self.pusher_pose_target, self.slider_pose_target)
+
+        # Save edges to self.edges
+        for edge in self.gcs.Edges():
+            self.edges[(edge.u().name(), edge.v().name())] = edge
 
     def _build_subgraph_between_contact_modes(
         self,
@@ -171,9 +166,7 @@ class PlanarPushingPlanner:
                 incoming_idx = second_contact_mode_idx
 
             subgraph.connect_with_continuity_constraints(
-                self.slider.geometry.get_collision_free_region_for_loc_idx(
-                    incoming_idx
-                ),
+                self.slider.geometry.get_collision_free_region_for_loc_idx(incoming_idx),
                 VertexModePair(
                     self.contact_vertices[incoming_idx],
                     self.contact_modes[incoming_idx],
@@ -182,9 +175,7 @@ class PlanarPushingPlanner:
                 outgoing=False,
             )
             subgraph.connect_with_continuity_constraints(
-                self.slider.geometry.get_collision_free_region_for_loc_idx(
-                    outgoing_idx
-                ),
+                self.slider.geometry.get_collision_free_region_for_loc_idx(outgoing_idx),
                 VertexModePair(
                     self.contact_vertices[outgoing_idx],
                     self.contact_modes[outgoing_idx],
@@ -205,8 +196,7 @@ class PlanarPushingPlanner:
 
     def _get_all_vertex_mode_pairs(self) -> Dict[str, VertexModePair]:
         all_pairs = {
-            v.name(): VertexModePair(vertex=v, mode=m)
-            for v, m in zip(self.contact_vertices, self.contact_modes)
+            v.name(): VertexModePair(vertex=v, mode=m) for v, m in zip(self.contact_vertices, self.contact_modes)
         }
         # Add all vertices from subgraphs
         if not self.config.allow_teleportation:
@@ -215,10 +205,7 @@ class PlanarPushingPlanner:
 
         # Add source and target vertices (and possibly the ones associated
         # with the entry and exit subgraphs)
-        if (
-            self.config.allow_teleportation
-            or not self.config.use_entry_and_exit_subgraphs
-        ):
+        if self.config.allow_teleportation or not self.config.use_entry_and_exit_subgraphs:
             assert self.source is not None
             assert self.target is not None
 
@@ -228,11 +215,12 @@ class PlanarPushingPlanner:
             for subgraph in (self.source_subgraph, self.target_subgraph):
                 all_pairs.update(subgraph.get_all_vertex_mode_pairs())
 
+        # Add extra vertex mode pairs (i.e. when PlanarPushingMPC adds vertices w/ modified timing) to all_pairs
+        all_pairs.update(self.extra_vertex_mode_pairs)
+
         return all_pairs
 
-    def _create_entry_or_exit_subgraph(
-        self, entry_or_exit: Literal["entry", "exit"]
-    ) -> NonCollisionSubGraph:
+    def _create_entry_or_exit_subgraph(self, entry_or_exit: Literal["entry", "exit"]) -> NonCollisionSubGraph:
         if entry_or_exit == "entry":
             name = "ENTRY"
             kwargs = {"outgoing": True, "incoming": False}
@@ -242,9 +230,7 @@ class PlanarPushingPlanner:
 
         subgraph = NonCollisionSubGraph.create_with_gcs(self.gcs, self.config, name)
 
-        for idx, (vertex, mode) in enumerate(
-            zip(self.contact_vertices, self.contact_modes)
-        ):
+        for idx, (vertex, mode) in enumerate(zip(self.contact_vertices, self.contact_modes)):
             subgraph.connect_with_continuity_constraints(
                 self.slider.geometry.get_collision_free_region_for_loc_idx(idx),
                 VertexModePair(vertex, mode),
@@ -257,13 +243,8 @@ class PlanarPushingPlanner:
         pusher_pose: PlanarPose,
         slider_pose: PlanarPose,
     ) -> None:
-        if (
-            self.config.allow_teleportation
-            or not self.config.use_entry_and_exit_subgraphs
-        ):
-            self.source = self._add_single_source_or_target(
-                pusher_pose, slider_pose, "initial"
-            )
+        if self.config.allow_teleportation or not self.config.use_entry_and_exit_subgraphs:
+            self.source = self._add_single_source_or_target(pusher_pose, slider_pose, "initial")
         else:
             self.source_subgraph.set_initial_poses(pusher_pose, slider_pose)
             self.source = self.source_subgraph.source
@@ -273,13 +254,8 @@ class PlanarPushingPlanner:
         pusher_pose: PlanarPose,
         slider_pose: PlanarPose,
     ) -> None:
-        if (
-            self.config.allow_teleportation
-            or not self.config.use_entry_and_exit_subgraphs
-        ):
-            self.target = self._add_single_source_or_target(
-                pusher_pose, slider_pose, "final"
-            )
+        if self.config.allow_teleportation or not self.config.use_entry_and_exit_subgraphs:
+            self.target = self._add_single_source_or_target(pusher_pose, slider_pose, "final")
         else:
             self.target_subgraph.set_final_poses(pusher_pose, slider_pose)
             self.target = self.target_subgraph.target
@@ -310,28 +286,20 @@ class PlanarPushingPlanner:
         # connect source or target to all contact modes
         if initial_or_final == "initial":
             # source to contact modes
-            for contact_vertex, contact_mode in zip(
-                self.contact_vertices, self.contact_modes
-            ):
-                self.edges[("source", contact_mode.name)] = (
-                    gcs_add_edge_with_continuity(
-                        self.gcs,
-                        pair,
-                        VertexModePair(contact_vertex, contact_mode),
-                        only_continuity_on_slider=True,
-                    )
+            for contact_vertex, contact_mode in zip(self.contact_vertices, self.contact_modes):
+                self.edges[("source", contact_mode.name)] = gcs_add_edge_with_continuity(
+                    self.gcs,
+                    pair,
+                    VertexModePair(contact_vertex, contact_mode),
+                    only_continuity_on_slider=True,
                 )
         else:  # contact modes to target
-            for contact_vertex, contact_mode in zip(
-                self.contact_vertices, self.contact_modes
-            ):
-                self.edges[(contact_mode.name, "target")] = (
-                    gcs_add_edge_with_continuity(
-                        self.gcs,
-                        VertexModePair(contact_vertex, contact_mode),
-                        pair,
-                        only_continuity_on_slider=True,
-                    )
+            for contact_vertex, contact_mode in zip(self.contact_vertices, self.contact_modes):
+                self.edges[(contact_mode.name, "target")] = gcs_add_edge_with_continuity(
+                    self.gcs,
+                    VertexModePair(contact_vertex, contact_mode),
+                    pair,
+                    only_continuity_on_slider=True,
                 )
 
         return pair
@@ -351,15 +319,9 @@ class PlanarPushingPlanner:
             solver_options.SetOption(CommonSolverOption.kPrintFileName, "solver_log.txt")  # type: ignore
 
         mosek = MosekSolver()
-        solver_options.SetOption(
-            mosek.solver_id(), "MSK_DPAR_INTPNT_CO_TOL_PFEAS", tolerance
-        )
-        solver_options.SetOption(
-            mosek.solver_id(), "MSK_DPAR_INTPNT_CO_TOL_DFEAS", tolerance
-        )
-        solver_options.SetOption(
-            mosek.solver_id(), "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", tolerance
-        )
+        solver_options.SetOption(mosek.solver_id(), "MSK_DPAR_INTPNT_CO_TOL_PFEAS", tolerance)
+        solver_options.SetOption(mosek.solver_id(), "MSK_DPAR_INTPNT_CO_TOL_DFEAS", tolerance)
+        solver_options.SetOption(mosek.solver_id(), "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", tolerance)
 
         solver_options.SetOption(
             mosek.solver_id(),
@@ -372,10 +334,7 @@ class PlanarPushingPlanner:
 
         return solver_options
 
-    def _solve(self, solver_params: PlanarSolverParams) -> MathematicalProgramResult:
-        """
-        Returns the relaxed GCS result, potentially with non-binary flow values.
-        """
+    def _get_solver_options(self, solver_params: PlanarSolverParams) -> opt.GraphOfConvexSetsOptions:
         options = opt.GraphOfConvexSetsOptions()
 
         options.convex_relaxation = solver_params.gcs_convex_relaxation
@@ -387,9 +346,7 @@ class PlanarPushingPlanner:
         if solver_params.solver == "mosek":
             mosek = MosekSolver()
             options.solver = mosek
-            options.solver_options = self._get_mosek_params(
-                solver_params, 1e-4, presolve=False
-            )
+            options.solver_options = self._get_mosek_params(solver_params, 1e-4, presolve=False)
         else:  # clarabel
             clarabel = ClarabelSolver()
             options.solver = clarabel
@@ -397,20 +354,27 @@ class PlanarPushingPlanner:
             options.solver_options.SetOption(clarabel.solver_id(), "tol_gap_rel", 1e-4)
             options.solver_options.SetOption(clarabel.solver_id(), "tol_gap_abs", 1e-4)
 
-        assert self.source is not None
-        assert self.target is not None
+        return options
 
-        # TODO: The following commented out code allows you to pick which path to choose
-        # active_vertices = ["source", "FACE_2", "FACE_0", "target"]
-        # active_edges = [
-        #     self.edges[(active_vertices[i], active_vertices[i + 1])]
-        #     for i in range(len(active_vertices) - 1)
-        # ]
-        # result = self.gcs.SolveConvexRestriction(active_edges, options)
+    def _solve(
+        self, solver_params: PlanarSolverParams, active_vertices: Optional[List[str]] = None
+    ) -> MathematicalProgramResult:
+        """
+        Returns the relaxed GCS result, potentially with non-binary flow values.
 
-        result = self.gcs.SolveShortestPath(
-            self.source.vertex, self.target.vertex, options
-        )
+        If active_vertices is provided, the problem is solved with a fixed mode sequence
+        (i.e. active_vertices = ["source", "FACE_2", "FACE_0", "target"]).
+        In this case, the problem is purely convex, solves to optimality and requires no rounding.
+        """
+        options = self._get_solver_options(solver_params)
+
+        if active_vertices is None:
+            result = self.gcs.SolveShortestPath(self.source.vertex, self.target.vertex, options)
+        else:
+            active_edges = [
+                self.edges[(active_vertices[i], active_vertices[i + 1])] for i in range(len(active_vertices) - 1)
+            ]
+            result = self.gcs.SolveConvexRestriction(active_edges, options)
 
         if solver_params.print_flows:
             self._print_edge_flows(result)
@@ -426,9 +390,6 @@ class PlanarPushingPlanner:
         Returns N solution paths, sorted in increasing order based on optimal cost,
         where N = solver_params.rounding_steps.
         """
-        assert self.source is not None
-        assert self.target is not None
-
         options = opt.GraphOfConvexSetsOptions()
         options.max_rounded_paths = solver_params.rounding_steps
         options.max_rounding_trials = solver_params.max_rounding_trials
@@ -438,18 +399,14 @@ class PlanarPushingPlanner:
 
         options.solver_options = self._get_mosek_params(solver_params, 1e-5)
 
-        paths = self.gcs.SamplePaths(
-            self.source.vertex, self.target.vertex, result, options
-        )
+        paths = self.gcs.SamplePaths(self.source.vertex, self.target.vertex, result, options)
         results = [self.gcs.SolveConvexRestriction(path, options) for path in paths]
 
         flows = [result.GetSolution(e.phi()) for e in self.gcs.Edges()]
 
         # Sort the paths and results by optimal cost
         paths_and_results = zip(paths, results)
-        only_successful_res = [
-            pair for pair in paths_and_results if pair[1].is_success()
-        ]
+        only_successful_res = [pair for pair in paths_and_results if pair[1].is_success()]
 
         if len(only_successful_res) == 0:
             return None
@@ -457,9 +414,7 @@ class PlanarPushingPlanner:
         # if len(only_successful_res) == 0:
         #     raise RuntimeError("No trajectories rounded succesfully")
 
-        sorted_res = sorted(
-            only_successful_res, key=lambda pair: pair[1].get_optimal_cost()
-        )
+        sorted_res = sorted(only_successful_res, key=lambda pair: pair[1].get_optimal_cost())
         paths, results = zip(*sorted_res)
 
         paths = [
@@ -475,44 +430,71 @@ class PlanarPushingPlanner:
 
         return paths
 
-    def _plan_paths(
-        self, solver_params: PlanarSolverParams
+    def _get_solution_path_with_fixed_mode_sequence(
+        self,
+        result: MathematicalProgramResult,
+        solver_params: PlanarSolverParams,
     ) -> Optional[List[PlanarPushingPath]]:
         """
-        Plans a path.
+        Returns single optimal path wrapped as a list with one PlanarPushingPath object.
+        """
+        if not result.is_success():
+            return None
+
+        # Extract the solution path from the result
+        edge_path = self.gcs.GetSolutionPath(self.source.vertex, self.target.vertex, result)
+
+        # Create the PlanarPushingPath from the edges
+        path = PlanarPushingPath.from_path(
+            self.gcs,
+            result,
+            edge_path,
+            self._get_all_vertex_mode_pairs(),
+            assert_nan_values=solver_params.assert_nan_values,
+        )
+
+        return [path]
+
+    def _plan_paths(
+        self, solver_params: PlanarSolverParams, active_vertices: Optional[List[str]] = None
+    ) -> Optional[List[PlanarPushingPath]]:
+        """
+        Plans a path. Note that no rounding is done at this step.
         """
         assert self.source is not None
         assert self.target is not None
 
-        gcs_result = self._solve(solver_params)
+        gcs_result = self._solve(solver_params, active_vertices)
         self.relaxed_gcs_result = gcs_result
 
         if solver_params.assert_result:
             assert gcs_result.is_success()
-        else:
-            if not gcs_result.is_success():
-                print("WARNING: Solver did not find a solution!")
 
         if not gcs_result.is_success():
+            print("WARNING: Solver did not find a solution!")
             return None
 
         if solver_params.measure_solve_time:
-            print(
-                f"Total elapsed optimization time: {gcs_result.get_solver_details().optimizer_time}"
-            )
+            print(f"Total elapsed optimization time: {gcs_result.get_solver_details().optimizer_time}")
 
         if solver_params.print_cost:
             cost = gcs_result.get_optimal_cost()
             print(f"Cost: {cost}")
 
-        # Get N paths from GCS rounding, pick the best one
-        paths = self.get_solution_paths(
-            gcs_result,
-            solver_params,
-        )
+        if active_vertices is None:
+            # Get N paths from GCS rounding
+            paths = self.get_solution_paths(
+                gcs_result,
+                solver_params,
+            )
+        else:
+            paths = self._get_solution_path_with_fixed_mode_sequence(
+                gcs_result,
+                solver_params,
+            )
 
         if paths is None:
-            print("No gcs paths found")
+            print("WARNING: No GCS paths found")
             return None
         else:
             if solver_params.print_rounding_details:
@@ -527,11 +509,7 @@ class PlanarPushingPlanner:
             for path in paths:
                 path.do_rounding(solver_params)
 
-            feasible_paths = [
-                p
-                for p in paths
-                if p.rounded_result is not None and p.rounded_result.is_success()
-            ]
+            feasible_paths = [p for p in paths if p.rounded_result is not None and p.rounded_result.is_success()]
 
             if solver_params.print_rounding_details:
                 print(f"num rounded feasible paths: {len(feasible_paths)}")
@@ -544,29 +522,43 @@ class PlanarPushingPlanner:
             raise NotImplementedError("Must enable rounding steps")
 
     def _pick_best_path(self, paths: List[PlanarPushingPath]) -> PlanarPushingPath:
+        """
+        Picks the best path from a list of paths based on the rounded cost.
+        """
         rounded_costs = [
             p.rounded_result.get_optimal_cost()
             for p in paths
             if p.rounded_result is not None  # type
         ]
-
         best_idx = np.argmin(rounded_costs)
         path = paths[best_idx]
+        return path
 
+    def _pick_best_path_with_fixed_mode_sequence(self, paths: List[PlanarPushingPath]) -> PlanarPushingPath:
+        """
+        Picks the best path from a list of paths based on the non-rounded cost
+        (no rounding necessary since mode sequence is fixed, i.e. solution is
+        already feasible and optimal).
+        """
+        rounded_costs = [p.result.get_optimal_cost() for p in paths]
+        best_idx = np.argmin(rounded_costs)
+        path = paths[best_idx]
         return path
 
     def plan_path(
-        self, solver_params: PlanarSolverParams
+        self, solver_params: PlanarSolverParams, active_vertices: Optional[List[str]] = None
     ) -> Optional[PlanarPushingPath]:
-        paths = self._plan_paths(solver_params)
+        paths = self._plan_paths(solver_params, active_vertices)
         if paths is None:
             return None
 
-        feasible_paths = self._get_rounded_paths(solver_params, paths)
-        if feasible_paths is None:
-            return None
-
-        self.path = self._pick_best_path(feasible_paths)
+        if active_vertices is None:
+            feasible_paths = self._get_rounded_paths(solver_params, paths)
+            if feasible_paths is None:
+                return None
+            self.path = self._pick_best_path(feasible_paths)
+        else:
+            self.path = self._pick_best_path_with_fixed_mode_sequence(paths)
 
         if solver_params.print_path:
             print(f"path: {self.path.get_path_names()}")
@@ -577,10 +569,7 @@ class PlanarPushingPlanner:
         """
         Used for debugging.
         """
-        edge_phis = {
-            (e.u().name(), e.v().name()): result.GetSolution(e.phi())
-            for e in self.gcs.Edges()
-        }
+        edge_phis = {(e.u().name(), e.v().name()): result.GetSolution(e.phi()) for e in self.gcs.Edges()}
         sorted_flows = sorted(edge_phis.items(), key=lambda item: item[0])
         for name, flow in sorted_flows:
             print(f"{name}: {flow}")
@@ -594,13 +583,9 @@ class PlanarPushingPlanner:
         Optionally saves the graph to file if a string is given for the 'filepath' argument.
         """
         if result:
-            graphviz = self.gcs.GetGraphvizString(
-                result=result, show_slacks=False, precision=2, active_path=[]
-            )
+            graphviz = self.gcs.GetGraphvizString(result=result, show_slacks=False, precision=2, active_path=[])
         else:
-            graphviz = self.gcs.GetGraphvizString(
-                show_slacks=False, precision=2, active_path=[]
-            )
+            graphviz = self.gcs.GetGraphvizString(show_slacks=False, precision=2, active_path=[])
 
         data = pydot.graph_from_dot_data(graphviz)[0]  # type: ignore
         if filename is not None:

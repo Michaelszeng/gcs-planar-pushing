@@ -1,6 +1,6 @@
 import os
 import pickle
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, replace
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -18,6 +18,9 @@ from planning_through_contact.geometry.planar.non_collision import (
 from planning_through_contact.geometry.planar.planar_pose import PlanarPose
 from planning_through_contact.geometry.planar.planar_pushing_path import (
     PlanarPushingPath,
+)
+from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+    PlanarPushingTrajectory,
 )
 from planning_through_contact.planning.planar.planar_plan_config import (
     PlanarPlanConfig,
@@ -59,6 +62,8 @@ class SingleRunResult:
     solver_params: Optional[PlanarSolverParams] = None
     name: Optional[str] = None
     cost_term_vals: Optional[Dict[str, Dict]] = None
+    path: Optional[PlanarPushingPath] = None
+    trajectory: Optional[PlanarPushingTrajectory] = None
 
     @property
     def total_rounding_time(self) -> Optional[float]:
@@ -72,18 +77,14 @@ class SingleRunResult:
         if self.feasible_cost is None or self.numerical_difficulties:
             return None
         else:
-            return (
-                (self.feasible_cost - self.relaxed_gcs_cost) / self.relaxed_gcs_cost
-            ) * 100
+            return ((self.feasible_cost - self.relaxed_gcs_cost) / self.relaxed_gcs_cost) * 100
 
     @property
     def binary_flows_optimality_gap(self) -> Optional[float]:
         if self.binary_flows_cost is None:
             return None
         else:
-            return (
-                (self.binary_flows_cost - self.relaxed_gcs_cost) / self.relaxed_gcs_cost
-            ) * 100
+            return ((self.binary_flows_cost - self.relaxed_gcs_cost) / self.relaxed_gcs_cost) * 100
 
     @property
     def optimality_percentage(self) -> Optional[float]:
@@ -116,7 +117,11 @@ class SingleRunResult:
 
     def save(self, filename: str) -> None:
         with open(Path(filename), "wb") as file:
-            pickle.dump(self, file)
+            # We exclude the path and trajectory fields as they contain Drake objects which are not serializable
+            # path contains Drake Vertex objects
+            # trajectory contains Drake trajectory objects (PiecewisePolynomial, PiecewiseQuaternionSlerp, etc.)
+            serializable_result = replace(self, path=None, trajectory=None)
+            pickle.dump(serializable_result, file)
 
     @staticmethod
     def load(filename: str) -> "SingleRunResult":
@@ -132,9 +137,7 @@ class SingleRunResult:
             f"sdp_optimality_gap: {self.binary_flows_optimality_gap}",
         ]
 
-        field_attributes = {
-            field.name: getattr(self, field.name) for field in fields(self)
-        }
+        field_attributes = {field.name: getattr(self, field.name) for field in fields(self)}
         field_strings = []
 
         # Avoid printing scientific and with too many decimals
@@ -162,113 +165,6 @@ class SingleRunResult:
             file.write(str(self))
 
 
-def do_one_run_get_path(
-    plan_config: PlanarPlanConfig,
-    solver_params: PlanarSolverParams,
-    start_and_goal: PlanarPushingStartAndGoal,
-    save_cost_vals: bool = False,
-    graph_filename: Optional[str] = None,
-) -> Tuple[SingleRunResult, Optional[PlanarPushingPath]]:
-    plan_config.start_and_goal = start_and_goal
-
-    planner = PlanarPushingPlanner(plan_config)
-    planner.formulate_problem()
-
-    if graph_filename is not None:
-        planner.create_graph_diagram(graph_filename)
-
-    paths = planner._plan_paths(solver_params)
-    if paths is None:
-        num_binary_rounded_paths = 0
-        num_feasible_rounded_paths = None
-        path = None
-
-        binary_flows_cost = None
-        binary_flows_success = False
-        binary_flows_time = None
-
-        feasible_success = False
-        feasible_cost = None
-        feasible_time = None
-    else:
-        num_binary_rounded_paths = len(paths)
-
-        feasible_paths = planner._get_rounded_paths(solver_params, paths)
-        if feasible_paths is None:
-            num_feasible_rounded_paths = 0
-
-            # Still record binary path
-            binary_flows_best_idx = np.argmin([p.relaxed_cost for p in paths])
-            path = paths[binary_flows_best_idx]
-            binary_flows_success = True
-            binary_flows_cost = path.relaxed_cost
-            binary_flows_time = path.solve_time
-
-            feasible_success = False
-            feasible_cost = None
-            feasible_time = None
-        else:
-            num_feasible_rounded_paths = len(feasible_paths)
-            path = planner._pick_best_path(feasible_paths)
-
-            binary_flows_success = True
-            binary_flows_cost = path.relaxed_cost
-            binary_flows_time = path.solve_time
-
-            feasible_success = True
-            feasible_cost = path.rounded_cost
-            feasible_time = path.rounding_time
-
-    assert planner.source is not None  # avoid typing errors
-    assert planner.target is not None  # avoid typing errors
-
-    relaxed_mean_determinant = (
-        float(np.mean(path.get_determinants())) if path is not None else None
-    )
-
-    rounded_mean_determinant = (
-        float(np.mean(path.get_determinants(rounded=True)))
-        if path is not None
-        else None
-    )
-
-    assert planner.relaxed_gcs_result is not None
-
-    return (
-        SingleRunResult(
-            relaxed_gcs_cost=planner.relaxed_gcs_result.get_optimal_cost(),
-            relaxed_gcs_success=planner.relaxed_gcs_result.is_success(),
-            relaxed_gcs_time=planner.relaxed_gcs_result.get_solver_details().optimizer_time,  # type: ignore
-            binary_flows_cost=binary_flows_cost,
-            binary_flows_success=binary_flows_success,
-            binary_flows_time=binary_flows_time,
-            feasible_cost=feasible_cost,
-            feasible_success=feasible_success,
-            feasible_time=feasible_time,
-            relaxed_mean_determinant=relaxed_mean_determinant,
-            rounded_mean_determinant=rounded_mean_determinant,
-            start_and_goal=start_and_goal,
-            config=plan_config,
-            cost_term_vals=(
-                path.get_cost_terms() if path is not None and save_cost_vals else None
-            ),
-            solver_params=solver_params,
-            num_binary_rounded_paths=num_binary_rounded_paths,
-            num_feasible_rounded_paths=num_feasible_rounded_paths,
-        ),
-        path,
-    )
-
-
-def do_one_run(
-    plan_config: PlanarPlanConfig,
-    solver_params: PlanarSolverParams,
-    start_and_goal: PlanarPushingStartAndGoal,
-):
-    run, _ = do_one_run_get_path(plan_config, solver_params, start_and_goal)
-    return run
-
-
 def sample_random_plan(
     x_and_y_limits: Tuple[float, float, float, float] = (-0.5, 0.5, -0.5, 0.5),
     slider_target_pose: Optional[PlanarPose] = None,
@@ -291,25 +187,18 @@ def sample_random_plan(
     BUFFER = 0.5  # This is just a hardcoded distance number
     pusher_pose = PlanarPose(x_max + BUFFER, y_max + BUFFER, 0)
 
-    plan = PlanarPushingStartAndGoal(
-        slider_initial_pose, slider_target_pose, pusher_pose, pusher_pose
-    )
+    plan = PlanarPushingStartAndGoal(slider_initial_pose, slider_target_pose, pusher_pose, pusher_pose)
     return plan
 
 
-def _slider_within_workspace(
-    workspace: PlanarPushingWorkspace, pose: PlanarPose, slider: CollisionGeometry
-) -> bool:
+def _slider_within_workspace(workspace: PlanarPushingWorkspace, pose: PlanarPose, slider: CollisionGeometry) -> bool:
     """
     Checks whether the entire slider is within the workspace
     """
     R_WB = pose.two_d_rot_matrix()
     p_WB = pose.pos()
 
-    p_Wv_s = [
-        slider.get_p_Wv_i(vertex_idx, R_WB, p_WB).flatten()
-        for vertex_idx in range(len(slider.vertices))
-    ]
+    p_Wv_s = [slider.get_p_Wv_i(vertex_idx, R_WB, p_WB).flatten() for vertex_idx in range(len(slider.vertices))]
 
     lb, ub = workspace.slider.bounds
     vertices_within_workspace: bool = np.all([v <= ub for v in p_Wv_s]) and np.all(  # type: ignore
@@ -337,11 +226,7 @@ def _check_collision(
         PolytopeContactLocation(ContactLocation.FACE, idx)
         for idx in range(config.slider_geometry.num_collision_free_regions)
     ]
-    matching_locs = [
-        loc
-        for loc in locations
-        if check_finger_pose_in_contact_location(pusher_pose_body, loc, config)
-    ]
+    matching_locs = [loc for loc in locations if check_finger_pose_in_contact_location(pusher_pose_body, loc, config)]
     if len(matching_locs) == 0:
         return True
     else:
@@ -407,25 +292,122 @@ def get_plan_start_and_goals_to_point(
     print(f"Sampling {num_plans} random initial conditions with random seed {seed}")
 
     for _ in tqdm(range(num_plans)):
-        slider_initial_pose = _get_slider_pose_within_workspace(
-            workspace, slider, pusher_pose, config, limit_rotations
-        )
+        slider_initial_pose = _get_slider_pose_within_workspace(workspace, slider, pusher_pose, config, limit_rotations)
 
         slider_target_pose = PlanarPose(point[0], point[1], 0)
 
-        plans.append(
-            PlanarPushingStartAndGoal(
-                slider_initial_pose, slider_target_pose, pusher_pose, pusher_pose
-            )
-        )
+        plans.append(PlanarPushingStartAndGoal(slider_initial_pose, slider_target_pose, pusher_pose, pusher_pose))
 
     return plans
+
+
+def do_one_run_get_path(
+    plan_config: PlanarPlanConfig,
+    solver_params: PlanarSolverParams,
+    start_and_goal: PlanarPushingStartAndGoal,
+    save_cost_vals: bool = False,
+    graph_filename: Optional[str] = None,
+    active_vertices: Optional[List[str]] = None,
+) -> SingleRunResult:
+    """
+    Execute planning pipeline for a single planar pushing problem,
+    also returning all solve data/metrics (costs, solve times, etc.).
+    """
+    plan_config.start_and_goal = start_and_goal
+
+    planner = PlanarPushingPlanner(plan_config)
+    planner.formulate_problem()
+
+    if graph_filename is not None:
+        planner.create_graph_diagram(graph_filename)
+
+    paths = planner._plan_paths(solver_params, active_vertices)
+    if paths is None:
+        num_binary_rounded_paths = 0
+        num_feasible_rounded_paths = None
+        path = None
+
+        binary_flows_cost = None
+        binary_flows_success = False
+        binary_flows_time = None
+
+        feasible_success = False
+        feasible_cost = None
+        feasible_time = None
+    else:
+        num_binary_rounded_paths = len(paths)
+
+        feasible_paths = planner._get_rounded_paths(solver_params, paths)
+        if feasible_paths is None:
+            num_feasible_rounded_paths = 0
+
+            # Still record binary path
+            binary_flows_best_idx = np.argmin([p.relaxed_cost for p in paths])
+            path = paths[binary_flows_best_idx]
+            binary_flows_success = True
+            binary_flows_cost = path.relaxed_cost
+            binary_flows_time = path.solve_time
+
+            feasible_success = False
+            feasible_cost = None
+            feasible_time = None
+        else:
+            num_feasible_rounded_paths = len(feasible_paths)
+            path = planner._pick_best_path(feasible_paths)
+
+            binary_flows_success = True
+            binary_flows_cost = path.relaxed_cost
+            binary_flows_time = path.solve_time
+
+            feasible_success = True
+            feasible_cost = path.rounded_cost
+            feasible_time = path.rounding_time
+
+    assert planner.source is not None  # avoid typing errors
+    assert planner.target is not None  # avoid typing errors
+
+    relaxed_mean_determinant = float(np.mean(path.get_determinants())) if path is not None else None
+    rounded_mean_determinant = float(np.mean(path.get_determinants(rounded=True))) if path is not None else None
+
+    # Create trajectory from path
+    # Use rounded trajectory if feasible rounding succeeded, otherwise use relaxed trajectory
+    trajectory = None
+    if path is not None:
+        if feasible_success:
+            trajectory = path.to_traj(rounded=True)
+        else:
+            trajectory = path.to_traj(rounded=False)
+
+    assert planner.relaxed_gcs_result is not None
+
+    return SingleRunResult(
+        relaxed_gcs_cost=planner.relaxed_gcs_result.get_optimal_cost(),
+        relaxed_gcs_success=planner.relaxed_gcs_result.is_success(),
+        relaxed_gcs_time=planner.relaxed_gcs_result.get_solver_details().optimizer_time,  # type: ignore
+        binary_flows_cost=binary_flows_cost,
+        binary_flows_success=binary_flows_success,
+        binary_flows_time=binary_flows_time,
+        feasible_cost=feasible_cost,
+        feasible_success=feasible_success,
+        feasible_time=feasible_time,
+        relaxed_mean_determinant=relaxed_mean_determinant,
+        rounded_mean_determinant=rounded_mean_determinant,
+        start_and_goal=start_and_goal,
+        config=plan_config,
+        cost_term_vals=(path.get_cost_terms() if path is not None and save_cost_vals else None),
+        solver_params=solver_params,
+        num_binary_rounded_paths=num_binary_rounded_paths,
+        num_feasible_rounded_paths=num_feasible_rounded_paths,
+        path=path,
+        trajectory=trajectory,
+    )
 
 
 def create_plan(
     start_and_target: PlanarPushingStartAndGoal,
     config: PlanarPlanConfig,
     solver_params: PlanarSolverParams,
+    active_vertices: Optional[List[str]] = None,
     output_folder: str = "",
     output_name: str = "Untitled_traj",
     save_video: bool = True,
@@ -437,13 +419,14 @@ def create_plan(
     debug: bool = False,
     hardware: bool = False,
     save_relaxed: bool = False,
-) -> SingleRunResult | None:
+) -> Optional[SingleRunResult]:
     """
     Creates a planar pushing plan.
 
     @param start_and_target: Starting and target configuration for the system.
     @param config: Config for the system and planner.
     @param solver_params: Parameters for the underlying optimization solver.
+    @param active_vertices: (Optional)Fixed mode sequence to use for planning.
     """
     # Set up folders
     folder_name = f"{output_folder}/{output_name}"
@@ -465,27 +448,28 @@ def create_plan(
             filename=f"{folder_name}/start_and_goal",
         )
 
-    if debug or save_analysis:
-        solve_data, path = do_one_run_get_path(
+    if debug or save_analysis:  # Run planning pipeline with returning data/metrics
+        solve_data = do_one_run_get_path(
             config,
             solver_params,
             start_and_goal=start_and_target,
             save_cost_vals=True,
             graph_filename=f"{folder_name}/graph",
+            active_vertices=active_vertices,
         )
-    else:
+        path = solve_data.path
+    else:  # Just run planning pipeline, throw away data/metrics
         planner = PlanarPushingPlanner(config)
         planner.config.start_and_goal = start_and_target
         planner.formulate_problem()
-        path = planner.plan_path(solver_params)
+        path = planner.plan_path(solver_params, active_vertices)
         solve_data = None
 
     if solve_data is not None:
         solve_data.save(f"{analysis_folder}/solve_data.pkl")
         solve_data.save_as_text(f"{analysis_folder}/solve_data.txt")
 
-    # We may get infeasible
-    if path is not None:
+    if path is not None:  # We may get infeasible
         traj_relaxed = path.to_traj()
 
         if do_rounding:
@@ -522,9 +506,7 @@ def create_plan(
             )
 
             if save_analysis:
-                plot_forces(
-                    traj_relaxed, filename=f"{trajectory_folder}/relaxed_traj_forces"
-                )
+                plot_forces(traj_relaxed, filename=f"{trajectory_folder}/relaxed_traj_forces")
 
         if traj_rounded is not None:
             make_traj_figure(
@@ -536,9 +518,7 @@ def create_plan(
             )
 
             if save_analysis:
-                plot_forces(
-                    traj_rounded, filename=f"{trajectory_folder}/rounded_traj_forces"
-                )
+                plot_forces(traj_rounded, filename=f"{trajectory_folder}/rounded_traj_forces")
 
                 compare_trajs(
                     traj_relaxed,

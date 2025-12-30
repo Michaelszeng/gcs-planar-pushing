@@ -7,11 +7,11 @@ from typing import List, Optional
 import numpy as np
 import numpy.typing as npt
 
-from planning_through_contact.deprecated.geometry.two_d.rigid_body_2d import RigidBody2d
 from planning_through_contact.geometry.bezier import BezierCurve
 from planning_through_contact.geometry.collision_geometry.collision_geometry import (
     CollisionGeometry,
 )
+from planning_through_contact.geometry.rigid_body_2d import RigidBody2d
 from planning_through_contact.visualize.colors import COLORS, RGB
 
 
@@ -22,12 +22,8 @@ class VisualizationPoint2d:
 
     # TODO remove
     @classmethod
-    def from_ctrl_points(
-        cls, ctrl_points: npt.NDArray[np.float64], color: str = "red1"
-    ) -> "VisualizationPoint2d":
-        position_curve = BezierCurve.create_from_ctrl_points(
-            ctrl_points
-        ).eval_entire_interval()
+    def from_ctrl_points(cls, ctrl_points: npt.NDArray[np.float64], color: str = "red1") -> "VisualizationPoint2d":
+        position_curve = BezierCurve.create_from_ctrl_points(ctrl_points).eval_entire_interval()
         return cls(position_curve, COLORS[color])
 
     def __post_init__(self):
@@ -49,13 +45,9 @@ class VisualizationForce2d(VisualizationPoint2d):
         ctrl_points_force: npt.NDArray[np.float64],
         color: str = "red1",
     ) -> "VisualizationForce2d":
-        position_curve = BezierCurve.create_from_ctrl_points(
-            ctrl_points_position
-        ).eval_entire_interval()
+        position_curve = BezierCurve.create_from_ctrl_points(ctrl_points_position).eval_entire_interval()
 
-        force_curve = BezierCurve.create_from_ctrl_points(
-            ctrl_points_force
-        ).eval_entire_interval()
+        force_curve = BezierCurve.create_from_ctrl_points(ctrl_points_force).eval_entire_interval()
 
         return cls(position_curve, COLORS[color], force_curve)
 
@@ -69,9 +61,7 @@ class VisualizationPolygon2d(VisualizationPoint2d):
         cls,
         com_position: npt.NDArray[np.float64],  # (num_steps, n)
         rotation: npt.NDArray[np.float64],  # (num_steps, n ** 2)
-        polytope: (
-            RigidBody2d | CollisionGeometry
-        ),  # TODO: RigidBody2d will be deprecated!
+        polytope: (RigidBody2d | CollisionGeometry),
         color: RGB,
     ) -> "VisualizationPolygon2d":
         # Transform points into world frame
@@ -79,8 +69,7 @@ class VisualizationPolygon2d(VisualizationPoint2d):
         num_dims = 2  # TODO replace
         temp = np.array(
             [
-                pos.reshape((-1, 1))
-                + rot.reshape(num_dims, num_dims).dot(polytope.vertices_for_plotting)
+                pos.reshape((-1, 1)) + rot.reshape(num_dims, num_dims).dot(polytope.vertices_for_plotting)
                 for rot, pos in zip(rotation, com_position)
             ]
         )  # (num_steps, dims, num_vertices)
@@ -99,9 +88,7 @@ class VisualizationPolygon2d(VisualizationPoint2d):
         polytope: RigidBody2d,
         color: str = "red1",
     ) -> "VisualizationPolygon2d":
-        com_position_curve = BezierCurve.create_from_ctrl_points(
-            ctrl_points_com_position
-        ).eval_entire_interval()
+        com_position_curve = BezierCurve.create_from_ctrl_points(ctrl_points_com_position).eval_entire_interval()
 
         # Transform points into world frame
         # (some intermediate steps here to get the points in the right format)
@@ -136,35 +123,20 @@ class VisualizationCone2d(VisualizationPolygon2d):
         angle: float,
         color: str = "cadetblue1",
     ) -> "VisualizationCone2d":
-        position_curve = BezierCurve.create_from_ctrl_points(
-            ctrl_points_position
-        ).eval_entire_interval()
+        position_curve = BezierCurve.create_from_ctrl_points(ctrl_points_position).eval_entire_interval()
 
         normal_vec = normal_vec_ctrl_points[
             :, 0
         ]  # the normal vec is constant in the local frame. I have to clean up this code anyway
         base_angle = np.arctan2(normal_vec[1], normal_vec[0])
-        ray_1 = (
-            np.array([np.cos(base_angle - angle), np.sin(base_angle - angle)]).reshape(
-                (-1, 1)
-            )
-            * cls.RAY_LENGTH
-        )
-        ray_2 = (
-            np.array([np.cos(base_angle + angle), np.sin(base_angle + angle)]).reshape(
-                (-1, 1)
-            )
-            * cls.RAY_LENGTH
-        )
+        ray_1 = np.array([np.cos(base_angle - angle), np.sin(base_angle - angle)]).reshape((-1, 1)) * cls.RAY_LENGTH
+        ray_2 = np.array([np.cos(base_angle + angle), np.sin(base_angle + angle)]).reshape((-1, 1)) * cls.RAY_LENGTH
         rays = np.hstack((ray_1, ray_2))
 
         # Transform points into world frame
         # (some intermediate steps here to get the points in the right format)
         temp = np.array(
-            [
-                pos.reshape((-1, 1)) + rot.dot(rays)
-                for rot, pos in zip(ctrl_points_orientation, ctrl_points_position.T)
-            ]
+            [pos.reshape((-1, 1)) + rot.dot(rays) for rot, pos in zip(ctrl_points_orientation, ctrl_points_position.T)]
         )  # (ctrl_points, dims, num_vertices)
         temp2 = np.transpose(temp, axes=[1, 0, 2])  # (dims, ctrl_points, num_vertices)
         num_rays = temp2.shape[2]
@@ -187,9 +159,9 @@ class Visualizer2d:
     POINT_RADIUS: float = 1.0
 
     def __post_init__(self) -> None:
-        self.PLOT_CENTER: npt.NDArray[np.float64] = np.array(
-            [self.WINDOW_WIDTH / 2, self.WINDOW_HEIGHT / 2]
-        ).reshape((-1, 1))
+        self.PLOT_CENTER: npt.NDArray[np.float64] = np.array([self.WINDOW_WIDTH / 2, self.WINDOW_HEIGHT / 2]).reshape(
+            (-1, 1)
+        )
 
     def visualize(
         self,
@@ -200,10 +172,7 @@ class Visualizer2d:
         target: Optional[VisualizationPolygon2d] = None,
         draw_origin: bool = False,
     ) -> None:
-        curve_lengths = np.array(
-            [len(p.position_curve) for p in points]
-            + [len(f.position_curve) for f in forces]
-        )
+        curve_lengths = np.array([len(p.position_curve) for p in points] + [len(f.position_curve) for f in forces])
         if not np.all(curve_lengths == curve_lengths[0]):
             raise ValueError("Curve lengths for plotting must match!")
         num_frames = curve_lengths[0]
@@ -221,13 +190,9 @@ class Visualizer2d:
 
         # Set the dimensions of the screen
         # and where it is placed
-        self.root.geometry(
-            "%dx%d+%d+%d" % (self.WINDOW_WIDTH, self.WINDOW_HEIGHT, x, y)
-        )
+        self.root.geometry("%dx%d+%d+%d" % (self.WINDOW_WIDTH, self.WINDOW_HEIGHT, x, y))
 
-        self.canvas = Canvas(
-            self.root, width=self.WINDOW_WIDTH, height=self.WINDOW_HEIGHT, bg="white"
-        )
+        self.canvas = Canvas(self.root, width=self.WINDOW_WIDTH, height=self.WINDOW_HEIGHT, bg="white")
         self.canvas.pack()
 
         if draw_origin:
@@ -278,9 +243,7 @@ class Visualizer2d:
 
         lower_left = pos - radius
         upper_right = pos + radius
-        points = self._transform_points_for_plotting(
-            np.hstack([lower_left, upper_right])
-        )
+        points = self._transform_points_for_plotting(np.hstack([lower_left, upper_right]))
         self.canvas.create_oval(
             points[0],
             points[1],
@@ -301,22 +264,14 @@ class Visualizer2d:
         force_points = self._transform_points_for_plotting(force_endpoints)
         ARROW_HEAD_LENGTH = 0.01
         if np.linalg.norm(force_strength) < ARROW_HEAD_LENGTH:
-            self.canvas.create_line(
-                force_points, width=2, fill=force.color.hex_format()
-            )
+            self.canvas.create_line(force_points, width=2, fill=force.color.hex_format())
         else:
-            self.canvas.create_line(
-                force_points, width=2, arrow=tk.LAST, fill=force.color.hex_format()
-            )
+            self.canvas.create_line(force_points, width=2, arrow=tk.LAST, fill=force.color.hex_format())
 
-    def _draw_polygon(
-        self, polygon: VisualizationPolygon2d, idx: int, plot_com: bool = False
-    ) -> None:
+    def _draw_polygon(self, polygon: VisualizationPolygon2d, idx: int, plot_com: bool = False) -> None:
         vertices = np.hstack([c[idx].reshape((-1, 1)) for c in polygon.vertices_curves])
         polygon_points = self._transform_points_for_plotting(vertices)
-        self.canvas.create_polygon(
-            polygon_points, fill=polygon.color.hex_format(), stipple="gray50"
-        )
+        self.canvas.create_polygon(polygon_points, fill=polygon.color.hex_format(), stipple="gray50")
         if plot_com:
             DARKENING = 50
             com_color = RGB(
@@ -325,16 +280,10 @@ class Visualizer2d:
                 polygon.color.blue - DARKENING,
             )
             viz_com = VisualizationPoint2d(polygon.position_curve, com_color)
-            self._draw_point(
-                viz_com, idx, radius=self.POINT_RADIUS * 1.2
-            )  # make com points a bit bigger
+            self._draw_point(viz_com, idx, radius=self.POINT_RADIUS * 1.2)  # make com points a bit bigger
 
     def _draw_target_polygon(self, target: VisualizationPolygon2d) -> None:
         LAST_IDX = -1  # we always use the last idx for target
-        vertices = np.hstack(
-            [c[LAST_IDX].reshape((-1, 1)) for c in target.vertices_curves]
-        )
+        vertices = np.hstack([c[LAST_IDX].reshape((-1, 1)) for c in target.vertices_curves])
         polygon_points = self._transform_points_for_plotting(vertices)
-        self.canvas.create_polygon(
-            polygon_points, outline=target.color.hex_format(), dash=(10, 5), width=3
-        )
+        self.canvas.create_polygon(polygon_points, outline=target.color.hex_format(), dash=(10, 5), width=3)

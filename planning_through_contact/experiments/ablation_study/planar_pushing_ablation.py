@@ -14,7 +14,7 @@ from planning_through_contact.planning.planar.planar_plan_config import (
 )
 from planning_through_contact.planning.planar.utils import (
     SingleRunResult,
-    do_one_run,
+    do_one_run_get_path,
     sample_random_plan,
 )
 
@@ -69,18 +69,12 @@ class AblationStudy:
     @property
     def solve_times_binary_flows(self) -> List[float | None]:
         return [
-            res.binary_flows_time
-            for res in self.results
-            if res.binary_flows_success and not res.numerical_difficulties
+            res.binary_flows_time for res in self.results if res.binary_flows_success and not res.numerical_difficulties
         ]
 
     @property
     def solve_times_feasible(self) -> List[float | None]:
-        return [
-            res.feasible_time
-            for res in self.results
-            if res.feasible_success and not res.numerical_difficulties
-        ]
+        return [res.feasible_time for res in self.results if res.feasible_success and not res.numerical_difficulties]
 
     @property
     def total_rounding_times(self) -> List[float | None]:
@@ -92,17 +86,11 @@ class AblationStudy:
 
     @property
     def optimality_gaps(self) -> List[float | None]:
-        return [
-            res.optimality_gap if res.optimality_gap is not None else None
-            for res in self.results
-        ]
+        return [res.optimality_gap if res.optimality_gap is not None else None for res in self.results]
 
     @property
     def feasible_is_success(self) -> List[bool | None]:
-        return [
-            res.feasible_success if not res.numerical_difficulties else False
-            for res in self.results
-        ]
+        return [res.feasible_success if not res.numerical_difficulties else False for res in self.results]
 
     @property
     def binary_flows_success(self) -> List[float]:
@@ -170,9 +158,7 @@ class AblationStudy:
         return cls(results)
 
     @classmethod
-    def load_from_folder(
-        cls, folder_name: str, num_to_load: Optional[int] = None
-    ) -> "AblationStudy":
+    def load_from_folder(cls, folder_name: str, num_to_load: Optional[int] = None) -> "AblationStudy":
         data_files = _find_files(folder_name, pattern="solve_data.pkl")
         from natsort import natsorted
 
@@ -198,7 +184,7 @@ def run_ablation(
     results = []
     for _ in tqdm(range(num_experiments)):
         start_and_goal = sample_random_plan()
-        result = do_one_run(plan_config, solver_params, start_and_goal)
+        result = do_one_run_get_path(plan_config, solver_params, start_and_goal)
         results.append(result)
 
     study = AblationStudy(results)

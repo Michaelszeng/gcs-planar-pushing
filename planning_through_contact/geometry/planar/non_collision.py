@@ -54,24 +54,16 @@ def check_finger_pose_in_contact_location(
     return result.is_success()
 
 
-def find_first_matching_location(
-    finger_pose: PlanarPose, config: PlanarPlanConfig
-) -> PolytopeContactLocation:
+def find_first_matching_location(finger_pose: PlanarPose, config: PlanarPlanConfig) -> PolytopeContactLocation:
     # we always add all non-collision modes, even when we don't add all contact modes
     # (think of maneuvering around the object etc)
     locations = [
         PolytopeContactLocation(ContactLocation.FACE, idx)
         for idx in range(config.slider_geometry.num_collision_free_regions)
     ]
-    matching_locs = [
-        loc
-        for loc in locations
-        if check_finger_pose_in_contact_location(finger_pose, loc, config)
-    ]
+    matching_locs = [loc for loc in locations if check_finger_pose_in_contact_location(finger_pose, loc, config)]
     if len(matching_locs) == 0:
-        raise ValueError(
-            "No valid configurations found for specified initial or target poses"
-        )
+        raise ValueError("No valid configurations found for specified initial or target poses")
     return matching_locs[0]
 
 
@@ -136,10 +128,7 @@ class NonCollisionVariables(AbstractModeVariables):
 
     @property
     def p_BPs(self):
-        return [
-            np.expand_dims(np.array([x, y]), 1)
-            for x, y in zip(self.p_BP_xs, self.p_BP_ys)
-        ]  # (2, 1)
+        return [np.expand_dims(np.array([x, y]), 1) for x, y in zip(self.p_BP_xs, self.p_BP_ys)]  # (2, 1)
 
     @property
     def v_BPs(self):
@@ -167,6 +156,7 @@ class NonCollisionMode(AbstractContactMode):
         name: Optional[str] = None,
         one_knot_point: bool = False,
         terminal_cost: bool = False,
+        time_in_mode: Optional[float] = None,
     ) -> "NonCollisionMode":
         if name is None:
             name = f"NON_COLL_{contact_location.idx}"
@@ -176,7 +166,7 @@ class NonCollisionMode(AbstractContactMode):
         return cls(
             name,
             num_knot_points,
-            config.time_non_collision,
+            time_in_mode if time_in_mode is not None else config.time_non_collision,
             contact_location,
             config,
             terminal_cost,
@@ -203,7 +193,12 @@ class NonCollisionMode(AbstractContactMode):
         loc = find_first_matching_location(pusher_pose_body, config)
         mode_name = "source" if initial_or_final == "initial" else "target"
         mode = cls.create_from_plan_spec(
-            loc, config, mode_name, one_knot_point=True, terminal_cost=terminal_cost
+            loc,
+            config,
+            mode_name,
+            one_knot_point=True,
+            terminal_cost=terminal_cost,
+            time_in_mode=1e-6,  # zero time in source and target
         )
         if set_slider_pose:
             mode.set_slider_pose(slider_pose_world)
@@ -221,16 +216,12 @@ class NonCollisionMode(AbstractContactMode):
 
         self.dt = self.time_in_mode / self.num_knot_points
 
-        self.contact_planes = self.slider_geometry.get_contact_planes(
-            self.contact_location.idx
-        )
+        self.contact_planes = self.slider_geometry.get_contact_planes(self.contact_location.idx)
         # TODO(bernhardpg): This class should not have a contact_location object. it is not accurate,
         # as it really only has the index of a collision free set, which may or may not correspond
         # 1-1 to a
-        self.collision_free_space_planes = (
-            self.slider_geometry.get_planes_for_collision_free_region(
-                self.contact_location.idx
-            )
+        self.collision_free_space_planes = self.slider_geometry.get_planes_for_collision_free_region(
+            self.contact_location.idx
         )
         self.prog = MathematicalProgram()
         self.variables = NonCollisionVariables.from_prog(
@@ -266,16 +257,11 @@ class NonCollisionMode(AbstractContactMode):
             for expr in exprs:
                 self.prog.AddLinearConstraint(expr)
 
-    def _create_collision_free_space_constraints(
-        self, pusher_pos: NpVariableArray
-    ) -> List[sym.Formula]:
+    def _create_collision_free_space_constraints(self, pusher_pos: NpVariableArray) -> List[sym.Formula]:
         avoid_contact = [
-            plane.dist_to(pusher_pos) - self.dynamics_config.pusher_radius >= 0
-            for plane in self.contact_planes
+            plane.dist_to(pusher_pos) - self.dynamics_config.pusher_radius >= 0 for plane in self.contact_planes
         ]
-        stay_in_region = [
-            plane.dist_to(pusher_pos) >= 0 for plane in self.collision_free_space_planes
-        ]
+        stay_in_region = [plane.dist_to(pusher_pos) >= 0 for plane in self.collision_free_space_planes]
         exprs = avoid_contact + stay_in_region
         return exprs
 
@@ -298,9 +284,7 @@ class NonCollisionMode(AbstractContactMode):
                 # Add a tiny constant to diagonal to make Q cholesky factorizable
                 # (Drake does a cholesky factorization under the hood)
                 new_Q = Q + np.eye(Q.shape[0]) * 1e-10
-                cost.evaluator().UpdateCoefficients(
-                    new_Q, cost.evaluator().b(), cost.evaluator().c()
-                )
+                cost.evaluator().UpdateCoefficients(new_Q, cost.evaluator().b(), cost.evaluator().c())
                 self.velocity_reg_cost = cost
 
                 self.costs["pusher_vel_reg"].append(self.velocity_reg_cost)
@@ -327,9 +311,7 @@ class NonCollisionMode(AbstractContactMode):
             self.distance_to_object_cost = []
             self.distance_to_object_socp_constraints = []
 
-            self.slack_vars = self.prog.NewContinuousVariables(
-                self.num_knot_points, "s"
-            )
+            self.slack_vars = self.prog.NewContinuousVariables(self.num_knot_points, "s")
 
             # We minimize the cost max(1/x_1, ..., 1/x_N) to penalize the distance to the closest face.
             #
@@ -357,9 +339,7 @@ class NonCollisionMode(AbstractContactMode):
 
                     c_2 = 1 / self.config.non_collision_cost.distance_to_object
 
-                    dist = (
-                        plane.dist_to(p_BP) - self.config.dynamics_config.pusher_radius
-                    )
+                    dist = plane.dist_to(p_BP) - self.config.dynamics_config.pusher_radius
 
                     # Now we formulate the constraint as per the comment above.
                     x_i = (1 / c_1) + (c_2 / c_1) * dist
@@ -367,9 +347,7 @@ class NonCollisionMode(AbstractContactMode):
                     constraint = self.prog.AddRotatedLorentzConeConstraint(vec)  # type: ignore
                     constraints_for_knot_point.append(constraint)
 
-                self.distance_to_object_socp_constraints.extend(
-                    constraints_for_knot_point
-                )
+                self.distance_to_object_socp_constraints.extend(constraints_for_knot_point)
 
     def set_slider_pose(self, pose: PlanarPose) -> None:
         self.slider_pose = pose
@@ -418,9 +396,7 @@ class NonCollisionMode(AbstractContactMode):
             sin_th,
         )
 
-    def get_variable_solutions(
-        self, result: MathematicalProgramResult
-    ) -> NonCollisionVariables:
+    def get_variable_solutions(self, result: MathematicalProgramResult) -> NonCollisionVariables:
         # TODO: This can probably be cleaned up somehow
         p_BF_xs = result.GetSolution(self.variables.p_BP_xs)
         p_BF_ys = result.GetSolution(self.variables.p_BP_ys)
@@ -452,10 +428,7 @@ class NonCollisionMode(AbstractContactMode):
             if isinstance(c.evaluator(), RotatedLorentzConeConstraint):
                 continue
 
-            if not (
-                isinstance(c.evaluator(), LinearConstraint)
-                or isinstance(c.evaluator(), BoundingBoxConstraint)
-            ):
+            if not (isinstance(c.evaluator(), LinearConstraint) or isinstance(c.evaluator(), BoundingBoxConstraint)):
                 raise ValueError("Constraints must be linear!")
 
             idxs = self.get_variable_indices_in_gcs_vertex(c.variables())
@@ -496,9 +469,7 @@ class NonCollisionMode(AbstractContactMode):
         # NOTE: They sets will likely be unbounded
         return poly
 
-    def get_continuity_vars(
-        self, first_or_last: Literal["first", "last"]
-    ) -> ContinuityVariables:
+    def get_continuity_vars(self, first_or_last: Literal["first", "last"]) -> ContinuityVariables:
         if first_or_last == "first":
             return ContinuityVariables(
                 self.variables.p_BPs[0],
