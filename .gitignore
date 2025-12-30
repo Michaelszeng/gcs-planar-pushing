@@ -1,6 +1,7 @@
 # Generated files
 demos/
 trajectories/
+trajectories_mpc/
 outputs/
 multirun/
 

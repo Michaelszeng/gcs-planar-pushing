@@ -39,7 +39,13 @@ brew install graphviz
 To activate the environment, run:
 
 ```console
-poetry shell
+source "$(poetry env info --path)/bin/activate"
+```
+
+To install the local `planning_through_contact` module, also run:
+
+```
+pip install -e .
 ```
 
 ---

@@ -5,14 +5,24 @@ from typing import List, NamedTuple, Optional, Tuple
 import numpy as np
 import numpy.typing as npt
 
-from planning_through_contact.deprecated.geometry.two_d.contact.types import (
-    ContactLocation,
-)
 from planning_through_contact.geometry.hyperplane import Hyperplane
 
 GRAV_ACC = 9.81
 
 # TODO: Deprecate this in favor of new, more general rigid_body using Drake functionality
+
+from enum import Enum
+
+
+class ContactLocation(Enum):
+    FACE = 1
+    VERTEX = 2
+
+
+# class ContactMode(Enum):
+#     ROLLING = 1
+#     SLIDING_LEFT = 2
+#     SLIDING_RIGHT = 3
 
 
 class PolytopeContactLocation(NamedTuple):
@@ -27,9 +37,7 @@ class RigidBody2d(ABC):
     mass: Optional[float]
 
     @abstractmethod
-    def get_proximate_vertices_from_location(
-        self, location: PolytopeContactLocation
-    ) -> List[npt.NDArray[np.float64]]:
+    def get_proximate_vertices_from_location(self, location: PolytopeContactLocation) -> List[npt.NDArray[np.float64]]:
         pass
 
     @abstractmethod
@@ -39,9 +47,7 @@ class RigidBody2d(ABC):
         pass
 
     @abstractmethod
-    def get_hyperplane_from_location(
-        self, location: PolytopeContactLocation
-    ) -> Hyperplane:
+    def get_hyperplane_from_location(self, location: PolytopeContactLocation) -> Hyperplane:
         pass
 
     @abstractmethod
@@ -58,14 +64,10 @@ class RigidBody2d(ABC):
     @property
     def gravity_force_in_W(self) -> npt.NDArray[np.float64]:
         if self.mass is None:
-            raise ValueError(
-                "Rigid body must have a mass to calculate gravitational force"
-            )
+            raise ValueError("Rigid body must have a mass to calculate gravitational force")
         return np.array([0, -self.mass * GRAV_ACC]).reshape((-1, 1))
 
-    def get_shortest_vec_from_com_to_face(
-        self, location: PolytopeContactLocation
-    ) -> npt.NDArray[np.float64]:
+    def get_shortest_vec_from_com_to_face(self, location: PolytopeContactLocation) -> npt.NDArray[np.float64]:
         v1, v2 = self.get_proximate_vertices_from_location(location)
         vec = (v1 + v2) / 2
         return vec
