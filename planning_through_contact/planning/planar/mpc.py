@@ -219,6 +219,7 @@ class PlanarPushingMPC:
                             self.planner.source,
                             new_pair,
                             only_continuity_on_slider=False,
+                            continuity_on_pusher_velocities=False,  # Source has no velocity
                         )
 
                         # Connect New Mode -> Next Mode
@@ -227,11 +228,20 @@ class PlanarPushingMPC:
                             if next_mode_name in all_pairs:
                                 next_pair = all_pairs[next_mode_name]
                                 edge_key_next = (new_mode.name, next_mode_name)
+
+                                # Only enforce velocity continuity if both modes are NonCollisionMode
+                                enforce_velocity = (
+                                    self.config.continuity_on_pusher_velocity
+                                    and isinstance(new_mode, NonCollisionMode)
+                                    and isinstance(next_pair.mode, NonCollisionMode)
+                                )
+
                                 self.planner.edges[edge_key_next] = gcs_add_edge_with_continuity(
                                     self.planner.gcs,
                                     new_pair,
                                     next_pair,
                                     only_continuity_on_slider=False,
+                                    continuity_on_pusher_velocities=enforce_velocity,
                                 )
 
                         # Update mode sequence in place so planner uses the new mode
@@ -277,6 +287,8 @@ class PlanarPushingMPC:
         5) Solve the GCS convex restriction
         6) Optionally save trajectory and video outputs
         """
+        assert t > 0, f"MPC plan must be run with t > 0, current t: {t}"
+
         mode_sequence = self._get_remaining_mode_sequence(t=t)
 
         if current_slider_pose is None or current_pusher_pose is None:

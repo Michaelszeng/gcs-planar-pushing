@@ -36,32 +36,26 @@ result = create_plan(
     debug=True,
 )
 
-# t = 11.5
 
-# active_vertices = retrieve_mode_sequence(result.path, t=t)
-# print(f"Active vertices: {active_vertices}")
+# # Run create_plan with the mode-sequence fixed
+# from planning_through_contact.planning.planar.mpc import PlanarPushingMPC
 
-# start_and_goal = PlanarPushingStartAndGoal(
-#     slider_initial_pose=result.trajectory.get_slider_planar_pose(t),
-#     slider_target_pose=slider_target_pose,
-#     pusher_initial_pose=result.trajectory.get_pusher_planar_pose(t),
-#     pusher_target_pose=pusher_target_pose,
-# )
+# print("Constructing MPC Planner...")
+# mpc = PlanarPushingMPC(config, start_and_goal, solver_params)
+# t = 0
+# active_vertices = mpc._get_remaining_mode_sequence(start_and_goal, t=t)
 
-# print("Starting planning using fixed mode sequence...")
-
+# print("Planning with MPC...")
 # result = create_plan(
 #     start_and_target=start_and_goal,
 #     config=config,
 #     solver_params=solver_params,
 #     active_vertices=active_vertices,
 #     output_folder="trajectories",
-#     output_name=f"{slider_type}_trajectory",
+#     output_name=f"{slider_type}_trajectory_test",
 #     save_video=True,
 #     interpolate_video=True,
 #     do_rounding=True,
 #     save_traj=True,
 #     debug=True,
 # )
-
-# print("Done!")
