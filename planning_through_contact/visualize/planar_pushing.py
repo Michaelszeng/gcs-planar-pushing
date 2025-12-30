@@ -1172,6 +1172,7 @@ def _add_slider_geometries(
         raise NotImplementedError(f"Cannot add geometry {slider_geometry.__class__.__name__} to builder.")
 
     if show_com:
+        COM_RADIUS = 0.005
         com_id = scene_graph.RegisterGeometry(
             source_id,
             slider_frame_id,
@@ -1180,7 +1181,7 @@ def _add_slider_geometries(
                     RotationMatrix.Identity(),
                     np.array([0, 0, 0]),  # type: ignore
                 ),
-                DrakeSphere(0.005),
+                DrakeSphere(COM_RADIUS),
                 "pusher",
             ),
         )
@@ -1213,6 +1214,27 @@ def _add_pusher_geometry(
         source_id,
         pusher_geometry_id,
         MakePhongIllustrationProperties(pusher_COLOR.diffuse(alpha)),
+    )
+
+    # Add a small dot at the center of the pusher for better visibility
+    DOT_RADIUS = 0.0025  # Small sphere radius
+    pusher_dot_id = scene_graph.RegisterGeometry(
+        source_id,
+        pusher_frame_id,
+        GeometryInstance(
+            RigidTransform(
+                RotationMatrix.Identity(),
+                np.array([0, 0, CYLINDER_HEIGHT / 2]),  # type: ignore
+            ),
+            DrakeSphere(DOT_RADIUS),
+            "pusher_center_dot",
+        ),
+    )
+    # Use black for the center dot so it's visible against the red pusher
+    scene_graph.AssignRole(
+        source_id,
+        pusher_dot_id,
+        MakePhongIllustrationProperties(BLACK.diffuse(alpha=1.0)),
     )
 
 
@@ -1645,83 +1667,50 @@ def visualize_planar_pushing_start_and_goal(
     return ani
 
 
-def _add_trajectory_overlay_lines(
-    scene_graph: SceneGraph,
-    source_id,
+def _plot_trajectory_overlay(
+    ax: plt.Axes,
     traj: PlanarPushingTrajectory,
     slider_color: RGB,
     pusher_color: RGB,
-    name_prefix: str = "traj",
-    line_width: float = 0.003,
     num_samples: int = 100,
+    line_width: float = 2.0,
 ) -> None:
     """
-    Add piecewise linear approximation of a trajectory as static line segments.
-    Draws both slider and pusher trajectories with separate colors.
-    Uses thin boxes to represent line segments (simpler than cylinders for 2D).
+    Plots a trajectory overlay of slider and pusher trajectories on given matplotlib axes.
     """
-    # Sample trajectory at regular intervals
     times = np.linspace(traj.start_time, traj.end_time, num_samples)
 
-    # Extract slider and pusher positions
     slider_positions = []
     pusher_positions = []
+
     for t in times:
         slider_pose = traj.get_slider_planar_pose(t)
         pusher_pose = traj.get_pusher_planar_pose(t)
         slider_positions.append(slider_pose.pos().flatten())
         pusher_positions.append(pusher_pose.pos().flatten())
 
-    # Height of the box (thin in z direction for 2D visualization)
-    box_height = 0.001
+    slider_positions = np.array(slider_positions)
+    pusher_positions = np.array(pusher_positions)
 
-    # Helper function to create line segments for a trajectory
-    def _create_line_segments(positions: List[npt.NDArray], prefix: str, obj_color: RGB):
-        for i in range(len(positions) - 1):
-            p1 = positions[i]
-            p2 = positions[i + 1]
+    # Plot slider trajectory
+    ax.plot(
+        slider_positions[:, 0],
+        slider_positions[:, 1],
+        color=slider_color.diffuse(),
+        linewidth=line_width,
+        label="Slider Traj",
+        zorder=100,  # Ensure it's drawn on top
+    )
 
-            # Compute midpoint and length
-            midpoint = (p1 + p2) / 2
-            segment_vec = p2 - p1
-            length = np.linalg.norm(segment_vec)
-
-            if length < 1e-6:
-                continue
-
-            # Simple 2D rotation around z-axis to align box with segment
-            angle = np.arctan2(segment_vec[1], segment_vec[0])
-
-            # Rotation matrix around z-axis (simple 2D rotation!)
-            cos_a = np.cos(angle)
-            sin_a = np.sin(angle)
-            R_matrix = np.array([[cos_a, -sin_a, 0], [sin_a, cos_a, 0], [0, 0, 1]])
-
-            transform = RigidTransform(RotationMatrix(R_matrix), np.array([midpoint[0], midpoint[1], 0.0]))
-
-            # Create thin box: length along x, width (line_width), height (thin in z)
-            box = DrakeBox(length, line_width, box_height)
-            geometry_id = scene_graph.RegisterAnchoredGeometry(
-                source_id,
-                GeometryInstance(
-                    transform,
-                    box,
-                    f"{prefix}_segment_{i}",
-                ),
-            )
-
-            # Assign color
-            scene_graph.AssignRole(
-                source_id,
-                geometry_id,
-                MakePhongIllustrationProperties(obj_color.diffuse()),
-            )
-
-    # Create line segments for slider trajectory
-    _create_line_segments(slider_positions, f"{name_prefix}_slider", slider_color)
-
-    # Create line segments for pusher trajectory
-    _create_line_segments(pusher_positions, f"{name_prefix}_pusher", pusher_color)
+    # Plot pusher trajectory
+    ax.plot(
+        pusher_positions[:, 0],
+        pusher_positions[:, 1],
+        color=pusher_color.diffuse(),
+        linewidth=line_width,
+        label="Pusher Traj",
+        zorder=100,  # Ensure it's drawn on top
+    )
 
 
 def visualize_planar_pushing_trajectory(
@@ -1747,18 +1736,6 @@ def visualize_planar_pushing_trajectory(
         visualize_knot_points,
     )
 
-    # Add trajectory overlays if provided
-    if overlay_trajs is not None:
-        for idx, (overlay_traj, slider_color, pusher_color) in enumerate(overlay_trajs):
-            _add_trajectory_overlay_lines(
-                scene_graph,
-                traj_geometry.source_id,
-                overlay_traj,
-                slider_color,
-                pusher_color,
-                name_prefix=f"overlay_traj_{idx}",
-            )
-
     if lims is None:
         x_min, x_max, y_min, y_max = traj.get_pos_limits(buffer=0.1)
     else:
@@ -1777,6 +1754,16 @@ def visualize_planar_pushing_trajectory(
         return visualizer
 
     visualizer = connect_planar_visualizer(builder, scene_graph)
+
+    # Plot overlay trajectories directly on the matplotlib axes
+    if overlay_trajs is not None:
+        for idx, (overlay_traj, slider_color, pusher_color) in enumerate(overlay_trajs):
+            _plot_trajectory_overlay(
+                visualizer.ax,
+                overlay_traj,
+                slider_color,
+                pusher_color,
+            )
 
     diagram = builder.Build()
     diagram.set_name("diagram")

@@ -24,7 +24,7 @@ print("Constructing MPC Planner...")
 mpc = PlanarPushingMPC(config, start_and_goal, solver_params)
 
 print("Planning with MPC...")
-t = 3
+t = 1
 current_slider_pose = mpc.original_traj.get_slider_planar_pose(t)
 current_pusher_pose = mpc.original_traj.get_pusher_planar_pose(t)
 path = mpc.plan(
