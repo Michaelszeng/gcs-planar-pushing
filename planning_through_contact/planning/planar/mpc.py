@@ -2,16 +2,23 @@ import os
 from typing import List, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import pydrake.geometry.optimization as opt
 
 from planning_through_contact.geometry.planar.face_contact import FaceContactMode
-from planning_through_contact.geometry.planar.non_collision import NonCollisionMode
+from planning_through_contact.geometry.planar.non_collision import (
+    NonCollisionMode,
+    NonCollisionVariables,
+)
 from planning_through_contact.geometry.planar.non_collision_subgraph import (
     VertexModePair,
     gcs_add_edge_with_continuity,
 )
 from planning_through_contact.geometry.planar.planar_pose import PlanarPose
 from planning_through_contact.geometry.planar.planar_pushing_path import PlanarPushingPath
+from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+    NonCollisionTrajSegment,
+)
 from planning_through_contact.planning.planar.planar_plan_config import (
     PlanarPlanConfig,
     PlanarPushingStartAndGoal,
@@ -129,6 +136,7 @@ class PlanarPushingMPC:
         current_slider_pose: PlanarPose,
         current_pusher_pose: PlanarPose,
         mode_sequence: Optional[List[str]] = None,
+        current_pusher_velocity: Optional[npt.NDArray[np.float64]] = None,
     ) -> None:
         # Update config
         assert self.planner.config.start_and_goal is not None
@@ -199,6 +207,33 @@ class PlanarPushingMPC:
                     print(f"new_mode: {new_mode.name}")
 
                     if new_mode is not None:
+                        # Enforce initial velocity constraint if applicable
+                        if isinstance(new_mode, NonCollisionMode) and current_pusher_velocity is not None:
+                            # Constrain initial velocity
+                            # v_world = v_pusher_velocity  (pusher velocity in world frame)
+                            # v_body = R_WB.T @ v_world  (pusher velocity in slider body frame)
+                            # (slider is static during non-collision mode)
+                            R_WB = current_slider_pose.two_d_rot_matrix()
+                            v_body = R_WB.T @ current_pusher_velocity
+
+                            # Velocity constraint for Bezier curve:
+                            # For a Bezier curve of degree n parameterized over [0, T]:
+                            #   dB/dt |_{t=0} = n/T * (P1 - P0)
+                            # So to achieve initial velocity v_body:
+                            #   v_body = order / time_in_mode * (c1 - c0)
+                            #   c1 - c0 = v_body * time_in_mode / order
+                            decision_vars = new_mode.variables
+                            assert isinstance(decision_vars, NonCollisionVariables)
+                            c0_x = decision_vars.p_BP_xs[0]  # 1st control point x
+                            c0_y = decision_vars.p_BP_ys[0]  # 1st control point y
+                            c1_x = decision_vars.p_BP_xs[1]  # 2nd control point x
+                            c1_y = decision_vars.p_BP_ys[1]  # 2nd control point y
+
+                            order = decision_vars.num_knot_points - 1
+                            scale = decision_vars.time_in_mode / order
+                            new_mode.prog.AddLinearEqualityConstraint(c1_x - c0_x == v_body[0] * scale)
+                            new_mode.prog.AddLinearEqualityConstraint(c1_y - c0_y == v_body[1] * scale)
+
                         # Add to graph
                         new_vertex = self.planner.gcs.AddVertex(new_mode.get_convex_set(), new_mode.name)
                         new_mode.add_cost_to_vertex(new_vertex)
@@ -269,6 +304,7 @@ class PlanarPushingMPC:
         t: float,
         current_slider_pose: Optional[PlanarPose] = None,
         current_pusher_pose: Optional[PlanarPose] = None,
+        current_pusher_velocity: Optional[npt.NDArray[np.float64]] = None,
         output_folder: str = "",
         output_name: str = "",
         save_video: bool = False,
@@ -279,7 +315,7 @@ class PlanarPushingMPC:
         hardware: bool = False,
     ) -> Optional[PlanarPushingPath]:
         """
-        Using current time, plan a new path from the current state.
+        Using current time, plan a new path from the current state and pusher velocity.
         1) Determine remaining mode sequence from the original path
         2) Set new initial state, and update source vertex (as well as edges from the source vertex) in the GCS instance
         3) Determine the remaining time for the current mode
@@ -291,16 +327,24 @@ class PlanarPushingMPC:
 
         mode_sequence = self._get_remaining_mode_sequence(t=t)
 
-        if current_slider_pose is None or current_pusher_pose is None:
-            # If not provided, get from trajectory
+        # If not provided, get from trajectory (for testing purposes -- in general, user should provide)
+        if current_slider_pose is None or current_pusher_pose is None or current_pusher_velocity is None:
             traj = self.original_path.to_traj()
             if current_slider_pose is None:
                 current_slider_pose = traj.get_slider_planar_pose(t)
             if current_pusher_pose is None:
                 current_pusher_pose = traj.get_pusher_planar_pose(t)
+            if current_pusher_velocity is None:
+                # Extract velocity from trajectory
+                seg = traj.get_traj_segment_for_time(t)
+                if isinstance(seg, NonCollisionTrajSegment):
+                    v_body = seg.p_BP.traj.EvalDerivative(t)
+                    R_WB = seg.get_R_WB(t)[:2, :2]
+                    v_world = R_WB @ v_body
+                    current_pusher_velocity = v_world.flatten()
 
         self._update_mode_timing(t)
-        self._update_initial_poses(t, current_slider_pose, current_pusher_pose, mode_sequence)
+        self._update_initial_poses(t, current_slider_pose, current_pusher_pose, mode_sequence, current_pusher_velocity)
 
         path = self.planner.plan_path(self.solver_params, active_vertices=mode_sequence)
 
