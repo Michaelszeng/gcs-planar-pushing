@@ -63,7 +63,7 @@ class SliderPusherSystemConfig:
     friction_coeff_table_slider: float = 0.5
     friction_coeff_slider_pusher: float = 0.1
     grav_acc: float = 9.81
-    integration_constant: float = 0.6
+    integration_constant: float = 0.6  # Used for limit surface estimation
     force_scale: float = 0.01  # Scaling of the forces to make the optimization program better posed
 
     @cached_property

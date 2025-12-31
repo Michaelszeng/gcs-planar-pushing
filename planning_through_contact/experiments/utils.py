@@ -1,17 +1,22 @@
+import logging
 import os
 from datetime import datetime
 from typing import List, Literal, Optional, Tuple
 
 import numpy as np
+
 from planning_through_contact.experiments.ablation_study.planar_pushing_ablation import (
     run_ablation,
 )
-
+from planning_through_contact.geometry.collision_geometry.arbitrary_shape_2d import (
+    ArbitraryShape2D,
+)
 from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
 from planning_through_contact.geometry.collision_geometry.t_pusher_2d import TPusher2d
 from planning_through_contact.geometry.collision_geometry.vertex_defined_geometry import (
     VertexDefinedGeometry,
 )
+from planning_through_contact.geometry.physical_properties import PhysicalProperties
 from planning_through_contact.geometry.rigid_body import RigidBody
 from planning_through_contact.planning.planar.planar_plan_config import (
     BoxWorkspace,
@@ -46,21 +51,24 @@ def get_time_as_str() -> str:
     return formatted_time
 
 
-def get_box() -> RigidBody:
-    mass = 0.1
+def get_box(mass: float = 0.1) -> RigidBody:
     box_geometry = Box2d(width=0.2, height=0.2)
     slider = RigidBody("box", box_geometry, mass)
     return slider
 
 
-def get_tee() -> RigidBody:
-    mass = 0.1
+def get_tee(mass: float = 0.1) -> RigidBody:
     body = RigidBody("t_pusher", TPusher2d(), mass)
     return body
 
 
-def get_sugar_box() -> RigidBody:
-    mass = 0.1
+def get_arbitrary(arbitrary_shape_pickle_path: str, mass: float, com: Optional[np.ndarray] = None) -> RigidBody:
+    "com assumes uniform density if None."
+    body = RigidBody("arbitrary", ArbitraryShape2D(arbitrary_shape_pickle_path, com), mass)
+    return body
+
+
+def get_sugar_box(mass: float = 0.1) -> RigidBody:
     box_geometry = Box2d(width=0.106, height=0.185)
     slider = RigidBody("sugar_box", box_geometry, mass)
     return slider
@@ -138,17 +146,24 @@ def get_hardware_non_collision_cost() -> NonCollisionCost:
 
 
 def get_default_plan_config(
-    slider_type: Literal["box", "sugar_box", "tee"] = "box",
+    slider_type: Literal["box", "sugar_box", "tee", "arbitrary"] = "box",
+    arbitrary_shape_pickle_path: str = "",
+    slider_physical_properties: PhysicalProperties = None,
     pusher_radius: float = 0.015,
     time_contact: float = 2.0,
     time_non_collision: float = 4.0,
     workspace: Optional[PlanarPushingWorkspace] = None,
-    use_case: Literal["hardware", "demo", "normal"] = "normal",
+    use_case: Literal["hardware", "drake_iiwa", "demo", "normal"] = "normal",
 ) -> PlanarPlanConfig:
+    mass = 0.1 if slider_physical_properties is None else slider_physical_properties.mass
+    com = None if slider_physical_properties is None else slider_physical_properties.center_of_mass
+    if slider_physical_properties is None:
+        logging.warning("Using default mass of 0.1 kg for the slider.")
+
     if slider_type == "box":
-        slider = get_box()
+        slider = get_box(mass)
     elif slider_type == "sugar_box":
-        slider = get_sugar_box()
+        slider = get_sugar_box(mass)
     elif slider_type == "convex_4":
         slider = get_four_corner_slider()
     elif slider_type == "convex_5":
@@ -156,11 +171,13 @@ def get_default_plan_config(
     elif slider_type == "triangle":
         slider = get_triangle()
     elif slider_type == "tee":
-        slider = get_tee()
+        slider = get_tee(mass)
+    elif slider_type == "arbitrary":
+        slider = get_arbitrary(arbitrary_shape_pickle_path, mass, com)
     else:
         raise NotImplementedError(f"Slider type {slider_type} not supported")
 
-    if use_case == "hardware":  # this is the config used for generating plans for hardware demos
+    if use_case == "hardware":  # used for generating plans for hardware demos
         slider_pusher_config = SliderPusherSystemConfig(
             slider=slider,
             pusher_radius=pusher_radius,
@@ -178,6 +195,26 @@ def get_default_plan_config(
 
         num_knot_points_non_collision = 5
         num_knot_points_contact = 3
+
+    elif use_case == "drake_iiwa":  # used for generating plans for simulation testing in Drake with Iiwa System
+        slider_pusher_config = SliderPusherSystemConfig(
+            slider=slider,
+            pusher_radius=pusher_radius,
+            friction_coeff_slider_pusher=0.375,  # Slider uses mu=0.5, pusher uses mu=0.25
+            friction_coeff_table_slider=0.5,
+            integration_constant=0.3,
+        )
+        contact_cost = get_default_contact_cost()
+        non_collision_cost = get_default_non_collision_cost()
+        buffer_to_corners = 0.0
+        contact_config = ContactConfig(cost=contact_cost, lam_min=buffer_to_corners, lam_max=1 - buffer_to_corners)
+
+        time_contact = 3.0
+        time_non_collision = 2.0
+
+        num_knot_points_non_collision = 3
+        num_knot_points_contact = 3
+
     elif use_case == "demo":
         slider_pusher_config = SliderPusherSystemConfig(
             slider=slider,

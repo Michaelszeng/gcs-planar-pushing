@@ -1,5 +1,11 @@
 # Planning Through Contact
 
+## Michael's Notes
+
+Primary Test Scripts:
+- `scripts/planar_pushing/create_plans_simple.py`
+- `scripts/planar_pushing/test_mpc.py`
+
 <p align="center">
   <img src="images/demo_triangle.gif" alt="Demo triangle" width="30%" />
   <img src="images/demo_convex4.gif" alt="Demo convex object" width="30%" />

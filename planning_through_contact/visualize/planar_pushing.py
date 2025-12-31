@@ -26,6 +26,9 @@ from pydrake.systems.planar_scenegraph_visualizer import (
     PlanarSceneGraphVisualizer,
 )
 
+from planning_through_contact.geometry.collision_geometry.arbitrary_shape_2d import (
+    ArbitraryShape2D,
+)
 from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
 from planning_through_contact.geometry.collision_geometry.collision_geometry import (
     CollisionGeometry,
@@ -1137,6 +1140,26 @@ def _add_slider_geometries(
             MakePhongIllustrationProperties(color.diffuse(alpha)),
         )
     elif isinstance(slider_geometry, TPusher2d):
+        boxes, transforms = slider_geometry.get_as_boxes(DEFAULT_HEIGHT / 2)
+        box_geometry_ids = [
+            scene_graph.RegisterGeometry(
+                source_id,
+                slider_frame_id,
+                GeometryInstance(
+                    transform,
+                    DrakeBox(box.width, box.height, DEFAULT_HEIGHT),
+                    f"box_{idx}",
+                ),
+            )
+            for idx, (box, transform) in enumerate(zip(boxes, transforms))
+        ]
+        for box_geometry_id in box_geometry_ids:
+            scene_graph.AssignRole(
+                source_id,
+                box_geometry_id,
+                MakePhongIllustrationProperties(color.diffuse(alpha)),
+            )
+    elif isinstance(slider_geometry, ArbitraryShape2D):
         boxes, transforms = slider_geometry.get_as_boxes(DEFAULT_HEIGHT / 2)
         box_geometry_ids = [
             scene_graph.RegisterGeometry(

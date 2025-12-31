@@ -1,9 +1,12 @@
-from typing import Callable, List, Optional
+import logging
+import pickle
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 import numpy.typing as npt
 import pydrake.symbolic as sym
 from pydrake.solvers import MathematicalProgramResult
+from scipy.spatial.transform import Rotation as R
 
 from planning_through_contact.tools.types import NpExpressionArray, NpFormulaArray
 
@@ -14,22 +17,18 @@ def convert_formula_to_lhs_expression(form: sym.Formula) -> sym.Expression:
     return expr
 
 
-convert_np_formulas_array_to_lhs_expressions: Callable[
-    [NpFormulaArray], NpExpressionArray
-] = np.vectorize(convert_formula_to_lhs_expression)
+convert_np_formulas_array_to_lhs_expressions: Callable[[NpFormulaArray], NpExpressionArray] = np.vectorize(
+    convert_formula_to_lhs_expression
+)
 
-convert_np_exprs_array_to_floats: Callable[
-    [NpExpressionArray], npt.NDArray[np.float64]
-] = np.vectorize(lambda expr: expr.Evaluate())
+convert_np_exprs_array_to_floats: Callable[[NpExpressionArray], npt.NDArray[np.float64]] = np.vectorize(
+    lambda expr: expr.Evaluate()
+)
 
 
-def evaluate_np_formulas_array(
-    formulas: NpFormulaArray, result: MathematicalProgramResult
-) -> npt.NDArray[np.float64]:
+def evaluate_np_formulas_array(formulas: NpFormulaArray, result: MathematicalProgramResult) -> npt.NDArray[np.float64]:
     expressions = convert_np_formulas_array_to_lhs_expressions(formulas)
-    evaluated_expressions = convert_np_exprs_array_to_floats(
-        result.GetSolution(expressions)
-    )
+    evaluated_expressions = convert_np_exprs_array_to_floats(result.GetSolution(expressions))
     return evaluated_expressions
 
 
@@ -41,16 +40,15 @@ def evaluate_np_expressions_array(
     return solutions
 
 
-def calc_displacements(
-    vars, dt: Optional[float] = None
-) -> List[npt.NDArray[np.float64]]:
+def calc_displacements(vars, dt: Optional[float] = None) -> List[npt.NDArray[np.float64]]:
     if dt is not None:
         scale = 1 / dt
     else:
         scale = 1
 
     displacements = [
-        (var_next - var_curr) * scale for var_curr, var_next in zip(vars[:-1], vars[1:])  # type: ignore
+        (var_next - var_curr) * scale
+        for var_curr, var_next in zip(vars[:-1], vars[1:])  # type: ignore
     ]
     return displacements
 
