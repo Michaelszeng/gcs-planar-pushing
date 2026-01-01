@@ -1,13 +1,13 @@
 import argparse
 
-from planning_through_contact.experiments.utils import (
+from gcs_planar_pushing.experiments.utils import (
     create_output_folder,
     get_default_experiment_plans,
     get_default_plan_config,
     get_default_solver_params,
     get_hardware_plans,
 )
-from planning_through_contact.planning.planar.utils import create_plan
+from gcs_planar_pushing.planning.planar.utils import create_plan
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

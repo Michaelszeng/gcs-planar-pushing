@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from planning_through_contact.geometry.collision_geometry.t_pusher_2d import TPusher2d
+from gcs_planar_pushing.geometry.collision_geometry.t_pusher_2d import TPusher2d
 
 
 def test_get_signed_distance() -> None:

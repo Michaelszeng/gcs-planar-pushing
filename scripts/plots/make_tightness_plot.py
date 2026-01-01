@@ -1,33 +1,33 @@
 import numpy as np
 from pydrake.solvers import MosekSolver
 
-from planning_through_contact.experiments.utils import (
+from gcs_planar_pushing.experiments.utils import (
     get_default_contact_cost,
     get_default_plan_config,
 )
-from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.box_2d import Box2d
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.planar.face_contact import FaceContactMode
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+from gcs_planar_pushing.geometry.planar.face_contact import FaceContactMode
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import (
     PlanarPushingTrajectory,
 )
-from planning_through_contact.geometry.rigid_body import RigidBody
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.geometry.rigid_body import RigidBody
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     ContactCost,
     PlanarPushingStartAndGoal,
 )
-from planning_through_contact.visualize.analysis import (
+from gcs_planar_pushing.visualize.analysis import (
     analyze_mode_result,
     analyze_plan,
     analyze_plans,
     get_constraint_violation_for_face_mode,
     plot_constraint_violation_for_trajs,
 )
-from planning_through_contact.visualize.colors import (
+from gcs_planar_pushing.visualize.colors import (
     AQUAMARINE3,
     AQUAMARINE4,
     BROWN2,
@@ -35,7 +35,7 @@ from planning_through_contact.visualize.colors import (
     DARKORCHID3,
     DODGERBLUE2,
 )
-from planning_through_contact.visualize.planar_pushing import (
+from gcs_planar_pushing.visualize.planar_pushing import (
     make_traj_figure,
     visualize_planar_pushing_trajectory,
 )

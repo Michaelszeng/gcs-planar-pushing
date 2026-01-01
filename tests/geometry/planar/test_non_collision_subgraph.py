@@ -11,33 +11,33 @@ from pydrake.solvers import (
     QuadraticCost,
 )
 
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.collision_geometry.t_pusher_2d import TPusher2d
-from planning_through_contact.geometry.planar.face_contact import FaceContactMode
-from planning_through_contact.geometry.planar.non_collision import (
+from gcs_planar_pushing.geometry.collision_geometry.t_pusher_2d import TPusher2d
+from gcs_planar_pushing.geometry.planar.face_contact import FaceContactMode
+from gcs_planar_pushing.geometry.planar.non_collision import (
     NonCollisionMode,
     find_first_matching_location,
 )
-from planning_through_contact.geometry.planar.non_collision_subgraph import (
+from gcs_planar_pushing.geometry.planar.non_collision_subgraph import (
     NonCollisionSubGraph,
     VertexModePair,
 )
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.planar.planar_pushing_path import (
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.planar.planar_pushing_path import (
     PlanarPushingPath,
 )
-from planning_through_contact.geometry.rigid_body import RigidBody
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.geometry.rigid_body import RigidBody
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     NonCollisionCost,
     PlanarPlanConfig,
     PlanarPushingStartAndGoal,
 )
-from planning_through_contact.tools.gcs_tools import get_gcs_solution_path_vertices
-from planning_through_contact.visualize.analysis import save_gcs_graph_diagram
-from planning_through_contact.visualize.planar_pushing import (
+from gcs_planar_pushing.tools.gcs_tools import get_gcs_solution_path_vertices
+from gcs_planar_pushing.visualize.analysis import save_gcs_graph_diagram
+from gcs_planar_pushing.visualize.planar_pushing import (
     make_traj_figure,
     visualize_planar_pushing_trajectory,
 )

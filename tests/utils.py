@@ -1,7 +1,7 @@
 from pydrake.symbolic import Formula, Polynomial, Variable
 
-from planning_through_contact.tools.types import NpExpressionArray, NpFormulaArray
-from planning_through_contact.tools.utils import convert_formula_to_lhs_expression
+from gcs_planar_pushing.tools.types import NpExpressionArray, NpFormulaArray
+from gcs_planar_pushing.tools.utils import convert_formula_to_lhs_expression
 
 
 def assert_np_expression_array_eq(

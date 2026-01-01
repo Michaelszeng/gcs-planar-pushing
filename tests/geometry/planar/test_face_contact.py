@@ -3,34 +3,34 @@ import pytest
 from pydrake.solvers import MosekSolver
 from pydrake.symbolic import Expression, Variables
 
-from planning_through_contact.convex_relaxation.sdp import (
+from gcs_planar_pushing.convex_relaxation.sdp import (
     eliminate_equality_constraints,
 )
-from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.box_2d import Box2d
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.planar.face_contact import (
+from gcs_planar_pushing.geometry.planar.face_contact import (
     FaceContactMode,
     FaceContactVariables,
 )
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import (
     PlanarPushingTrajectory,
 )
-from planning_through_contact.geometry.planar.trajectory_builder import (
+from gcs_planar_pushing.geometry.planar.trajectory_builder import (
     PlanarTrajectoryBuilder,
 )
-from planning_through_contact.geometry.rigid_body import RigidBody
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.geometry.rigid_body import RigidBody
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     PlanarPlanConfig,
     PlanarPushingStartAndGoal,
     SliderPusherSystemConfig,
 )
-from planning_through_contact.tools.utils import evaluate_np_expressions_array
-from planning_through_contact.visualize.analysis import plot_cos_sine_trajs
-from planning_through_contact.visualize.planar_pushing import (
+from gcs_planar_pushing.tools.utils import evaluate_np_expressions_array
+from gcs_planar_pushing.visualize.analysis import plot_cos_sine_trajs
+from gcs_planar_pushing.visualize.planar_pushing import (
     visualize_planar_pushing_trajectory,
     visualize_planar_pushing_trajectory_legacy,
 )

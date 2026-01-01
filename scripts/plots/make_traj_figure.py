@@ -4,11 +4,11 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import (
     PlanarPushingTrajectory,
     SimplePlanarPushingTrajectory,
 )
-from planning_through_contact.visualize.planar_pushing import (
+from gcs_planar_pushing.visualize.planar_pushing import (
     make_traj_figure,
     plot_simple_traj,
 )

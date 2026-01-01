@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
 
-from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.box_2d import Box2d
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.hyperplane import Hyperplane
+from gcs_planar_pushing.geometry.hyperplane import Hyperplane
 
 
 @pytest.fixture

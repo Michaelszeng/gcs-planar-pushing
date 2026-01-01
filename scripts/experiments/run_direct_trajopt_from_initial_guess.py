@@ -3,16 +3,16 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from planning_through_contact.experiments.baseline_comparison.direct_trajectory_optimization import (
+from gcs_planar_pushing.experiments.baseline_comparison.direct_trajectory_optimization import (
     SmoothingSchedule,
     direct_trajopt_through_contact,
 )
-from planning_through_contact.experiments.utils import (
+from gcs_planar_pushing.experiments.utils import (
     get_baseline_comparison_configs,
     get_default_baseline_solver_params,
     get_default_experiment_plans,
 )
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import (
     PlanarPushingTrajectory,
 )
 

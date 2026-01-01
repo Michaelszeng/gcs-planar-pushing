@@ -12,17 +12,17 @@ from pydrake.systems.analysis import Simulator
 from pydrake.systems.framework import Diagram, DiagramBuilder
 from pydrake.systems.primitives import ConstantVectorSource
 
-from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.box_2d import Box2d
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.collision_geometry.t_pusher_2d import TPusher2d
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.simulation.dynamics.slider_pusher.general_slider_pusher_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.t_pusher_2d import TPusher2d
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.simulation.dynamics.slider_pusher.general_slider_pusher_geometry import (
     GeneralSliderPusherGeometry,
 )
-from planning_through_contact.simulation.dynamics.slider_pusher.slider_pusher_geometry import (
+from gcs_planar_pushing.simulation.dynamics.slider_pusher.slider_pusher_geometry import (
     SliderPusherGeometry,
 )
 

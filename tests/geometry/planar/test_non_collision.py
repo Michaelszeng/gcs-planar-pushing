@@ -3,32 +3,32 @@ import pydrake.symbolic as sym
 import pytest
 from pydrake.solvers import Solve
 
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.collision_geometry.t_pusher_2d import TPusher2d
-from planning_through_contact.geometry.hyperplane import Hyperplane
-from planning_through_contact.geometry.planar.non_collision import (
+from gcs_planar_pushing.geometry.collision_geometry.t_pusher_2d import TPusher2d
+from gcs_planar_pushing.geometry.hyperplane import Hyperplane
+from gcs_planar_pushing.geometry.planar.non_collision import (
     NonCollisionMode,
     NonCollisionVariables,
     check_finger_pose_in_contact_location,
 )
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import (
     PlanarPushingTrajectory,
 )
-from planning_through_contact.geometry.planar.trajectory_builder import (
+from gcs_planar_pushing.geometry.planar.trajectory_builder import (
     PlanarTrajectoryBuilder,
 )
-from planning_through_contact.geometry.rigid_body import RigidBody
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.geometry.rigid_body import RigidBody
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     NonCollisionCost,
     PlanarPlanConfig,
     PlanarPushingStartAndGoal,
     SliderPusherSystemConfig,
 )
-from planning_through_contact.visualize.planar_pushing import (
+from gcs_planar_pushing.visualize.planar_pushing import (
     visualize_planar_pushing_trajectory,
     visualize_planar_pushing_trajectory_legacy,
 )

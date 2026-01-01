@@ -3,28 +3,28 @@ from pathlib import Path
 import numpy as np
 import pydrake.geometry.optimization as opt
 
-from planning_through_contact.experiments.utils import get_default_plan_config
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.experiments.utils import get_default_plan_config
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.planar.face_contact import FaceContactMode
-from planning_through_contact.geometry.planar.non_collision import NonCollisionMode
-from planning_through_contact.geometry.planar.non_collision_subgraph import (
+from gcs_planar_pushing.geometry.planar.face_contact import FaceContactMode
+from gcs_planar_pushing.geometry.planar.non_collision import NonCollisionMode
+from gcs_planar_pushing.geometry.planar.non_collision_subgraph import (
     VertexModePair,
     gcs_add_edge_with_continuity,
 )
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.planar.planar_pushing_path import (
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.planar.planar_pushing_path import (
     PlanarPushingPath,
 )
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     PlanarPlanConfig,
     PlanarPushingStartAndGoal,
     SliderPusherSystemConfig,
 )
-from planning_through_contact.visualize.analysis import save_gcs_graph_diagram
-from planning_through_contact.visualize.planar_pushing import (
+from gcs_planar_pushing.visualize.analysis import save_gcs_graph_diagram
+from gcs_planar_pushing.visualize.planar_pushing import (
     visualize_planar_pushing_trajectory,
 )
 from tests.geometry.planar.fixtures import (

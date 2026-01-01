@@ -2,7 +2,7 @@ import numpy as np
 import numpy.typing as npt
 from numpy.testing import assert_array_almost_equal
 
-from planning_through_contact.tools.math import (
+from gcs_planar_pushing.tools.math import (
     null_space_basis_qr_pivot,
     permutation_matrix_from_vec,
 )

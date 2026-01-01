@@ -1,13 +1,13 @@
 import numpy as np
 import pydrake.symbolic as sym
 
-from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.box_2d import Box2d
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     ContactMode,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.in_plane.contact_pair import (
+from gcs_planar_pushing.geometry.in_plane.contact_pair import (
     ContactFrameConstraints,
     ContactPairDefinition,
     FaceOnFaceContact,
@@ -15,9 +15,9 @@ from planning_through_contact.geometry.in_plane.contact_pair import (
     PointContactConstraints,
     PointOnFaceContact,
 )
-from planning_through_contact.geometry.in_plane.contact_point import ContactPoint
-from planning_through_contact.geometry.rigid_body import RigidBody
-from planning_through_contact.tools.utils import convert_formula_to_lhs_expression
+from gcs_planar_pushing.geometry.in_plane.contact_point import ContactPoint
+from gcs_planar_pushing.geometry.rigid_body import RigidBody
+from gcs_planar_pushing.tools.utils import convert_formula_to_lhs_expression
 from tests.utils import (
     assert_formula_array_degree,
     assert_formula_degree,

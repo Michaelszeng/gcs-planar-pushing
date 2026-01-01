@@ -1,7 +1,7 @@
-from planning_through_contact.experiments.utils import get_default_plan_config, get_default_solver_params
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.planning.planar.planar_plan_config import PlanarPushingStartAndGoal
-from planning_through_contact.planning.planar.utils import create_plan
+from gcs_planar_pushing.experiments.utils import get_default_plan_config, get_default_solver_params
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.planning.planar.planar_plan_config import PlanarPushingStartAndGoal
+from gcs_planar_pushing.planning.planar.utils import create_plan
 
 solver_params = get_default_solver_params()
 
@@ -41,7 +41,7 @@ result = create_plan(
 
 
 # # Run create_plan with the mode-sequence fixed
-# from planning_through_contact.planning.planar.mpc import PlanarPushingMPC
+# from gcs_planar_pushing.planning.planar.mpc import PlanarPushingMPC
 
 # print("Constructing MPC Planner...")
 # mpc = PlanarPushingMPC(config, start_and_goal, solver_params)

@@ -19,7 +19,7 @@ from pydrake.systems.analysis import Simulator
 from pydrake.systems.framework import DiagramBuilder, LeafSystem
 from pydrake.systems.primitives import FirstOrderLowPassFilter
 
-from planning_through_contact.simulation.hardware.hardware_interface import (
+from gcs_planar_pushing.simulation.hardware.hardware_interface import (
     ManipulationHardwareInterface,
 )
 

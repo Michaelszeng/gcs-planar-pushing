@@ -11,26 +11,26 @@ from omegaconf import OmegaConf, open_dict
 from pydrake.all import (
     StartMeshcat,
 )
-from planning_through_contact.geometry.planar.non_collision import NonCollisionVariables
+from gcs_planar_pushing.geometry.planar.non_collision import NonCollisionVariables
 
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import (
     PlanarPushingTrajectory,
 )
-from planning_through_contact.simulation.controllers.hybrid_mpc import HybridMpcConfig
-from planning_through_contact.simulation.controllers.iiwa_hardware_station import (
+from gcs_planar_pushing.simulation.controllers.hybrid_mpc import HybridMpcConfig
+from gcs_planar_pushing.simulation.controllers.iiwa_hardware_station import (
     IiwaHardwareStation,
 )
-from planning_through_contact.simulation.controllers.mpc_position_source import (
+from gcs_planar_pushing.simulation.controllers.mpc_position_source import (
     MPCPositionSource,
 )
-from planning_through_contact.simulation.environments.table_environment import (
+from gcs_planar_pushing.simulation.environments.table_environment import (
     TableEnvironment,
 )
-from planning_through_contact.simulation.planar_pushing.planar_pushing_sim_config import (
+from gcs_planar_pushing.simulation.planar_pushing.planar_pushing_sim_config import (
     PlanarPushingSimConfig,
 )
-from planning_through_contact.simulation.sensors.optitrack_config import OptitrackConfig
-from planning_through_contact.simulation.sensors.realsense_camera_config import (
+from gcs_planar_pushing.simulation.sensors.optitrack_config import OptitrackConfig
+from gcs_planar_pushing.simulation.sensors.realsense_camera_config import (
     RealsenseCameraConfig,
 )
 
@@ -139,7 +139,7 @@ def main(cfg: OmegaConf) -> None:
 
     try:
         if sim_config.use_hardware and cfg.realsense_config.should_record:
-            from planning_through_contact.simulation.sensors.realsense import (
+            from gcs_planar_pushing.simulation.sensors.realsense import (
                 RealsenseCamera,
             )
 

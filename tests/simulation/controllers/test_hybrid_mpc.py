@@ -15,45 +15,45 @@ from pydrake.systems.planar_scenegraph_visualizer import (
 )
 from pydrake.systems.primitives import VectorLogSink, ZeroOrderHold_
 
-from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.box_2d import Box2d
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.planar.face_contact import (
+from gcs_planar_pushing.geometry.planar.face_contact import (
     FaceContactMode,
     FaceContactVariables,
 )
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.planar.planar_pushing_path import (
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.planar.planar_pushing_path import (
     assemble_progs_from_contact_modes,
 )
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import (
     PlanarPushingContactMode,
     PlanarPushingTrajectory,
 )
-from planning_through_contact.geometry.rigid_body import RigidBody
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.geometry.rigid_body import RigidBody
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     PlanarPlanConfig,
     PlanarPushingStartAndGoal,
     SliderPusherSystemConfig,
 )
-from planning_through_contact.simulation.controllers.hybrid_mpc import (
+from gcs_planar_pushing.simulation.controllers.hybrid_mpc import (
     HybridModelPredictiveControlSystem,
     HybridModes,
     HybridMpc,
     HybridMpcConfig,
 )
-from planning_through_contact.simulation.dynamics.slider_pusher.slider_pusher_geometry import (
+from gcs_planar_pushing.simulation.dynamics.slider_pusher.slider_pusher_geometry import (
     SliderPusherGeometry,
 )
-from planning_through_contact.simulation.dynamics.slider_pusher.slider_pusher_system import (
+from gcs_planar_pushing.simulation.dynamics.slider_pusher.slider_pusher_system import (
     SliderPusherSystem,
 )
-from planning_through_contact.simulation.systems.slider_pusher_trajectory_feeder import (
+from gcs_planar_pushing.simulation.systems.slider_pusher_trajectory_feeder import (
     SliderPusherTrajectoryFeeder,
 )
-from planning_through_contact.visualize.analysis import (
+from gcs_planar_pushing.visualize.analysis import (
     PlanarPushingLog,
     analyze_mode_result,
     plot_control_sols_vs_time,
@@ -61,7 +61,7 @@ from planning_through_contact.visualize.analysis import (
     plot_planar_pushing_trajectory,
     plot_velocities,
 )
-from planning_through_contact.visualize.planar_pushing import (
+from gcs_planar_pushing.visualize.planar_pushing import (
     make_traj_figure,
     visualize_planar_pushing_start_and_goal,
     visualize_planar_pushing_trajectory,

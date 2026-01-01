@@ -1,20 +1,20 @@
 from pathlib import Path
-from planning_through_contact.experiments.utils import get_default_experiment_plans
-from planning_through_contact.experiments.utils import (
+from gcs_planar_pushing.experiments.utils import get_default_experiment_plans
+from gcs_planar_pushing.experiments.utils import (
     get_default_plan_config,
     get_default_solver_params,
 )
-from planning_through_contact.planning.planar.planar_pushing_planner import (
+from gcs_planar_pushing.planning.planar.planar_pushing_planner import (
     PlanarPushingPlanner,
 )
-from planning_through_contact.visualize.planar_pushing import (
+from gcs_planar_pushing.visualize.planar_pushing import (
     compare_trajs,
     make_traj_figure,
     plot_forces,
     visualize_planar_pushing_start_and_goal,
     visualize_planar_pushing_trajectory,
 )
-from planning_through_contact.geometry.planar.planar_pushing_path import (
+from gcs_planar_pushing.geometry.planar.planar_pushing_path import (
     PlanarPushingPath,
 )
 from pydrake.geometry.optimization import GraphOfConvexSets

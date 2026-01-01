@@ -1,19 +1,19 @@
-from planning_through_contact.experiments.ablation_study.planar_pushing_ablation import (
+from gcs_planar_pushing.experiments.ablation_study.planar_pushing_ablation import (
     do_one_run_get_path,
 )
-from planning_through_contact.experiments.utils import (
+from gcs_planar_pushing.experiments.utils import (
     get_default_plan_config,
     get_default_solver_params,
 )
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import (
     PlanarPushingTrajectory,
 )
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     PlanarPushingStartAndGoal,
 )
-from planning_through_contact.visualize.analysis import analyze_plans
-from planning_through_contact.visualize.planar_pushing import compare_trajs_vertically
+from gcs_planar_pushing.visualize.analysis import analyze_plans
+from gcs_planar_pushing.visualize.planar_pushing import compare_trajs_vertically
 from scripts.planar_pushing.create_plan import get_plan_start_and_goals_to_point
 
 make_data = True

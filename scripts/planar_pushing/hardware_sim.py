@@ -24,7 +24,7 @@ scenario.h.
 """
 
 from manipulation.station import JointStiffnessDriver, _ApplyDriverConfigsSim
-from planning_through_contact.simulation.sim_utils import (
+from gcs_planar_pushing.simulation.sim_utils import (
     ConfigureParser,
     package_xml_file,
 )

@@ -11,29 +11,29 @@ from pydrake.solvers import (
 )
 from pydrake.trajectories import PiecewisePolynomial, PiecewiseQuaternionSlerp
 
-from planning_through_contact.geometry.bezier import BezierCurve
-from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.bezier import BezierCurve
+from gcs_planar_pushing.geometry.collision_geometry.box_2d import Box2d
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     ContactMode,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.in_plane.contact_pair import (
+from gcs_planar_pushing.geometry.in_plane.contact_pair import (
     ContactPairDefinition,
 )
-from planning_through_contact.geometry.in_plane.contact_scene import (
+from gcs_planar_pushing.geometry.in_plane.contact_scene import (
     ContactSceneDefinition,
 )
-from planning_through_contact.geometry.rigid_body import RigidBody
-from planning_through_contact.planning.in_plane.contact_scene_program import (
+from gcs_planar_pushing.geometry.rigid_body import RigidBody
+from gcs_planar_pushing.planning.in_plane.contact_scene_program import (
     ContactSceneProgram,
 )
-from planning_through_contact.visualize.analysis import plot_cos_sine_trajs
-from planning_through_contact.visualize.colors import COLORS
-from planning_through_contact.visualize.in_plane_visualizer import (
+from gcs_planar_pushing.visualize.analysis import plot_cos_sine_trajs
+from gcs_planar_pushing.visualize.colors import COLORS
+from gcs_planar_pushing.visualize.in_plane_visualizer import (
     visualize_in_plane_manipulation_plan,
 )
-from planning_through_contact.visualize.visualizer_2d import (
+from gcs_planar_pushing.visualize.visualizer_2d import (
     VisualizationForce2d,
     VisualizationPolygon2d,
     Visualizer2d,

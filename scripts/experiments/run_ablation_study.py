@@ -1,10 +1,10 @@
 import argparse
 
-from planning_through_contact.experiments.ablation_study.planar_pushing_ablation import (
+from gcs_planar_pushing.experiments.ablation_study.planar_pushing_ablation import (
     AblationStudy,
     run_ablation_with_default_config,
 )
-from planning_through_contact.visualize.ablation_study import (
+from gcs_planar_pushing.visualize.ablation_study import (
     visualize_ablation_optimality_gaps,
 )
 

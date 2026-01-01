@@ -4,34 +4,34 @@ import numpy as np
 import pytest
 from pydrake.solvers import CommonSolverOption, MosekSolver, SnoptSolver, SolverOptions
 
-from planning_through_contact.experiments.utils import (
+from gcs_planar_pushing.experiments.utils import (
     get_default_plan_config,
     get_sugar_box,
 )
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.planar.face_contact import FaceContactMode
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.planar.planar_pushing_path import (
+from gcs_planar_pushing.geometry.planar.face_contact import FaceContactMode
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.planar.planar_pushing_path import (
     assemble_progs_from_contact_modes,
 )
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import (
     PlanarPushingTrajectory,
 )
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     PlanarPushingStartAndGoal,
     PlanarSolverParams,
 )
-from planning_through_contact.planning.planar.planar_pushing_planner import (
+from gcs_planar_pushing.planning.planar.planar_pushing_planner import (
     PlanarPushingPlanner,
 )
-from planning_through_contact.visualize.analysis import (
+from gcs_planar_pushing.visualize.analysis import (
     analyze_plan,
     plot_cos_sine_trajs,
 )
-from planning_through_contact.visualize.planar_pushing import (
+from gcs_planar_pushing.visualize.planar_pushing import (
     make_traj_figure,
     visualize_planar_pushing_trajectory,
 )

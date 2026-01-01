@@ -15,7 +15,7 @@ from pydrake.solvers import (
     Solve,
 )
 
-from planning_through_contact.convex_relaxation.sdp import (
+from gcs_planar_pushing.convex_relaxation.sdp import (
     _collect_bounding_box_constraints,
     _linear_bindings_to_affine_terms,
     add_trace_cost_on_psd_cones,
@@ -26,9 +26,9 @@ from planning_through_contact.convex_relaxation.sdp import (
     get_principal_minor,
     to_symmetric_matrix_from_lower_triangular_columns,
 )
-from planning_through_contact.tools.math import null_space_basis_svd
-from planning_through_contact.tools.types import NpExpressionArray, NpVariableArray
-from planning_through_contact.visualize.analysis import plot_cos_sine_trajs
+from gcs_planar_pushing.tools.math import null_space_basis_svd
+from gcs_planar_pushing.tools.types import NpExpressionArray, NpVariableArray
+from gcs_planar_pushing.visualize.analysis import plot_cos_sine_trajs
 
 
 class LinearSystem(NamedTuple):

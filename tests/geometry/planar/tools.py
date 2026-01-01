@@ -4,20 +4,20 @@ import numpy as np
 import numpy.typing as npt
 from pydrake.solvers import MathematicalProgramResult
 
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     CollisionGeometry,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.hyperplane import Hyperplane
-from planning_through_contact.geometry.planar.non_collision import NonCollisionVariables
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+from gcs_planar_pushing.geometry.hyperplane import Hyperplane
+from gcs_planar_pushing.geometry.planar.non_collision import NonCollisionVariables
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import (
     PlanarPushingTrajectory,
 )
-from planning_through_contact.geometry.planar.trajectory_builder import (
+from gcs_planar_pushing.geometry.planar.trajectory_builder import (
     OldPlanarPushingTrajectory,
 )
-from planning_through_contact.planning.planar.planar_pushing_planner import (
+from gcs_planar_pushing.planning.planar.planar_pushing_planner import (
     PlanarPushingPlanner,
 )
 

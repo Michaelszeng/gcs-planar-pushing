@@ -6,24 +6,24 @@ import pytest
 from pydrake.solvers import LinearCost
 from pydrake.symbolic import Variables
 
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.planar.planar_pushing_path import (
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.planar.planar_pushing_path import (
     PlanarPushingPath,
 )
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import (
     PlanarPushingTrajectory,
 )
-from planning_through_contact.geometry.planar.trajectory_builder import (
+from gcs_planar_pushing.geometry.planar.trajectory_builder import (
     PlanarTrajectoryBuilder,
 )
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     PlanarSolverParams,
 )
-from planning_through_contact.planning.planar.planar_pushing_planner import (
+from gcs_planar_pushing.planning.planar.planar_pushing_planner import (
     PlanarPushingPlanner,
 )
-from planning_through_contact.visualize.analysis import save_gcs_graph_diagram
-from planning_through_contact.visualize.planar_pushing import (
+from gcs_planar_pushing.visualize.analysis import save_gcs_graph_diagram
+from gcs_planar_pushing.visualize.planar_pushing import (
     make_traj_figure,
     visualize_planar_pushing_trajectory,
     visualize_planar_pushing_trajectory_legacy,

@@ -1,7 +1,7 @@
-from planning_through_contact.experiments.utils import get_default_plan_config, get_default_solver_params
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.planning.planar.mpc import PlanarPushingMPC
-from planning_through_contact.planning.planar.planar_plan_config import PlanarPushingStartAndGoal
+from gcs_planar_pushing.experiments.utils import get_default_plan_config, get_default_solver_params
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.planning.planar.mpc import PlanarPushingMPC
+from gcs_planar_pushing.planning.planar.planar_plan_config import PlanarPushingStartAndGoal
 
 solver_params = get_default_solver_params()
 

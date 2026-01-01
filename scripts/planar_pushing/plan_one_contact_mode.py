@@ -8,32 +8,32 @@ from pydrake.solvers import (
     SolverOptions,
 )
 
-from planning_through_contact.experiments.utils import (
+from gcs_planar_pushing.experiments.utils import (
     get_default_plan_config,
     get_default_solver_params,
 )
-from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.box_2d import Box2d
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.planar.face_contact import FaceContactMode
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+from gcs_planar_pushing.geometry.planar.face_contact import FaceContactMode
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import (
     PlanarPushingTrajectory,
 )
-from planning_through_contact.geometry.planar.trajectory_builder import (
+from gcs_planar_pushing.geometry.planar.trajectory_builder import (
     PlanarTrajectoryBuilder,
 )
-from planning_through_contact.geometry.rigid_body import RigidBody
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.geometry.rigid_body import RigidBody
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     NonCollisionCost,
     PlanarPlanConfig,
     PlanarPushingStartAndGoal,
     SliderPusherSystemConfig,
 )
-from planning_through_contact.visualize.analysis import analyze_mode_result
-from planning_through_contact.visualize.planar_pushing import (
+from gcs_planar_pushing.visualize.analysis import analyze_mode_result
+from gcs_planar_pushing.visualize.planar_pushing import (
     visualize_planar_pushing_trajectory,
 )
 

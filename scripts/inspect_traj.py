@@ -7,7 +7,7 @@ import numpy as np
 # Add repo root to path
 sys.path.append(os.getcwd())
 
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import PlanarPushingTrajectory
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import PlanarPushingTrajectory
 
 path = "trajectories_mpc/sugar_box_trajectory_t=11.5/trajectory/traj.pkl"
 

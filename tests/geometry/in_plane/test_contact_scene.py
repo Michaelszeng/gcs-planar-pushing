@@ -1,20 +1,20 @@
 import pytest
 
-from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.box_2d import Box2d
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     ContactMode,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.in_plane.contact_pair import (
+from gcs_planar_pushing.geometry.in_plane.contact_pair import (
     ContactPairDefinition,
 )
-from planning_through_contact.geometry.in_plane.contact_scene import (
+from gcs_planar_pushing.geometry.in_plane.contact_scene import (
     ContactSceneCtrlPoint,
     ContactSceneDefinition,
     StaticEquilibriumConstraints,
 )
-from planning_through_contact.geometry.rigid_body import RigidBody
+from gcs_planar_pushing.geometry.rigid_body import RigidBody
 from tests.utils import (
     assert_num_vars_in_expression_array,
     assert_num_vars_in_formula_array,

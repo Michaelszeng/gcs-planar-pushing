@@ -11,20 +11,20 @@ from pydrake.systems.planar_scenegraph_visualizer import (
 )
 from pydrake.systems.primitives import VectorLogSink
 
-from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.box_2d import Box2d
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.rigid_body import RigidBody
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.rigid_body import RigidBody
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     SliderPusherSystemConfig,
 )
-from planning_through_contact.simulation.dynamics.slider_pusher.slider_pusher_geometry import (
+from gcs_planar_pushing.simulation.dynamics.slider_pusher.slider_pusher_geometry import (
     SliderPusherGeometry,
 )
-from planning_through_contact.simulation.dynamics.slider_pusher.slider_pusher_system import (
+from gcs_planar_pushing.simulation.dynamics.slider_pusher.slider_pusher_system import (
     SliderPusherSystem,
 )
 

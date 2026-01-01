@@ -1,15 +1,15 @@
 import numpy as np
 
-from planning_through_contact.experiments.ablation_study.planar_pushing_ablation import (
+from gcs_planar_pushing.experiments.ablation_study.planar_pushing_ablation import (
     AblationStudy,
     SingleRunResult,
 )
-from planning_through_contact.visualize.ablation_study import (
+from gcs_planar_pushing.visualize.ablation_study import (
     visualize_ablation_as_histogram,
     visualize_ablation_optimality_percentages,
     visualize_multiple_ablation_studies,
 )
-from planning_through_contact.visualize.colors import AQUAMARINE4, BROWN2, DODGERBLUE2
+from gcs_planar_pushing.visualize.colors import AQUAMARINE4, BROWN2, DODGERBLUE2
 
 main_folder = "trajectories/"
 # study_tee = "run_20240513144942_sugar_box"

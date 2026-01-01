@@ -9,31 +9,31 @@ from pydrake.solvers import (
     SolverOptions,
 )
 
-from planning_through_contact.convex_relaxation.band_sparse_semidefinite_relaxation import (
+from gcs_planar_pushing.convex_relaxation.band_sparse_semidefinite_relaxation import (
     BandSparseSemidefiniteRelaxation,
 )
-from planning_through_contact.experiments.utils import get_default_plan_config
-from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.experiments.utils import get_default_plan_config
+from gcs_planar_pushing.geometry.collision_geometry.box_2d import Box2d
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.collision_geometry.t_pusher_2d import TPusher2d
-from planning_through_contact.geometry.planar.abstract_mode import PlanarPlanConfig
-from planning_through_contact.geometry.planar.face_contact import (
+from gcs_planar_pushing.geometry.collision_geometry.t_pusher_2d import TPusher2d
+from gcs_planar_pushing.geometry.planar.abstract_mode import PlanarPlanConfig
+from gcs_planar_pushing.geometry.planar.face_contact import (
     FaceContactMode,
     FaceContactVariables,
 )
-from planning_through_contact.geometry.planar.non_collision import (
+from gcs_planar_pushing.geometry.planar.non_collision import (
     NonCollisionMode,
     NonCollisionVariables,
 )
-from planning_through_contact.geometry.planar.non_collision_subgraph import (
+from gcs_planar_pushing.geometry.planar.non_collision_subgraph import (
     NonCollisionSubGraph,
 )
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.rigid_body import RigidBody
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.rigid_body import RigidBody
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     BoxWorkspace,
     ContactConfig,
     ContactCost,
@@ -41,7 +41,7 @@ from planning_through_contact.planning.planar.planar_plan_config import (
     PlanarPushingStartAndGoal,
     SliderPusherSystemConfig,
 )
-from planning_through_contact.planning.planar.planar_pushing_planner import (
+from gcs_planar_pushing.planning.planar.planar_pushing_planner import (
     PlanarPushingPlanner,
 )
 

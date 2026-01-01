@@ -19,15 +19,15 @@ from pydrake.symbolic import (
     Variables,
 )
 
-from planning_through_contact.convex_relaxation.band_sparse_semidefinite_relaxation import (
+from gcs_planar_pushing.convex_relaxation.band_sparse_semidefinite_relaxation import (
     BandSparseSemidefiniteRelaxation,
 )
-from planning_through_contact.convex_relaxation.sdp import (
+from gcs_planar_pushing.convex_relaxation.sdp import (
     create_sdp_relaxation,
     linear_bindings_to_homogenuous_form,
 )
-from planning_through_contact.tools.utils import convert_formula_to_lhs_expression
-from planning_through_contact.visualize.analysis import plot_cos_sine_trajs
+from gcs_planar_pushing.tools.utils import convert_formula_to_lhs_expression
+from gcs_planar_pushing.visualize.analysis import plot_cos_sine_trajs
 
 DEBUG = False
 

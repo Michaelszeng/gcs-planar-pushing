@@ -19,18 +19,18 @@ from pydrake.solvers import (  # CommonSolverOption,
     SolverOptions,
 )
 
-from planning_through_contact.geometry.utilities import cross_2d
-from planning_through_contact.planning.footstep.footstep_plan_config import (
+from gcs_planar_pushing.geometry.utilities import cross_2d
+from gcs_planar_pushing.planning.footstep.footstep_plan_config import (
     FootstepPlanningConfig,
     PotatoRobot,
 )
-from planning_through_contact.planning.footstep.footstep_trajectory import (
+from gcs_planar_pushing.planning.footstep.footstep_trajectory import (
     FootstepPlan,
     FootstepPlanSegmentProgram,
 )
-from planning_through_contact.planning.footstep.in_plane_terrain import InPlaneTerrain
-from planning_through_contact.tools.utils import evaluate_np_expressions_array
-from planning_through_contact.visualize.footstep_visualizer import animate_footstep_plan
+from gcs_planar_pushing.planning.footstep.in_plane_terrain import InPlaneTerrain
+from gcs_planar_pushing.tools.utils import evaluate_np_expressions_array
+from gcs_planar_pushing.visualize.footstep_visualizer import animate_footstep_plan
 
 DEBUG = False
 

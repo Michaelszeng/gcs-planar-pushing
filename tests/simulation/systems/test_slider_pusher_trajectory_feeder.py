@@ -10,36 +10,36 @@ from pydrake.systems.analysis import Simulator
 from pydrake.systems.framework import DiagramBuilder
 from pydrake.systems.primitives import ConstantVectorSource
 
-from planning_through_contact.geometry.collision_geometry.collision_geometry import (
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
     ContactLocation,
     PolytopeContactLocation,
 )
-from planning_through_contact.geometry.planar.face_contact import (
+from gcs_planar_pushing.geometry.planar.face_contact import (
     FaceContactMode,
     FaceContactVariables,
 )
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.planar.planar_pushing_path import (
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.planar.planar_pushing_path import (
     assemble_progs_from_contact_modes,
 )
-from planning_through_contact.geometry.planar.trajectory_builder import (
+from gcs_planar_pushing.geometry.planar.trajectory_builder import (
     PlanarTrajectoryBuilder,
 )
-from planning_through_contact.geometry.rigid_body import RigidBody
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.geometry.rigid_body import RigidBody
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     PlanarPlanConfig,
     SliderPusherSystemConfig,
 )
-from planning_through_contact.simulation.dynamics.slider_pusher.slider_pusher_geometry import (
+from gcs_planar_pushing.simulation.dynamics.slider_pusher.slider_pusher_geometry import (
     SliderPusherGeometry,
 )
-from planning_through_contact.simulation.dynamics.slider_pusher.slider_pusher_system import (
+from gcs_planar_pushing.simulation.dynamics.slider_pusher.slider_pusher_system import (
     SliderPusherSystem,
 )
-from planning_through_contact.simulation.systems.slider_pusher_trajectory_feeder import (
+from gcs_planar_pushing.simulation.systems.slider_pusher_trajectory_feeder import (
     SliderPusherTrajectoryFeeder,
 )
-from planning_through_contact.visualize.planar_pushing import (
+from gcs_planar_pushing.visualize.planar_pushing import (
     visualize_planar_pushing_trajectory_legacy,
 )
 from tests.geometry.planar.fixtures import (

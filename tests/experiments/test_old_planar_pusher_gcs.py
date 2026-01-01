@@ -1,15 +1,15 @@
 import numpy as np
 from pydrake.solvers import CommonSolverOption, MosekSolver, Solve, SolverOptions
 
-from planning_through_contact.deprecated.geometry.two_d.equilateral_polytope_2d import (
+from gcs_planar_pushing.deprecated.geometry.two_d.equilateral_polytope_2d import (
     EquilateralPolytope2d,
 )
-from planning_through_contact.deprecated.geometry.two_d.t_pusher import TPusher
-from planning_through_contact.geometry.collision_geometry.t_pusher_2d import TPusher2d
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.rigid_body import RigidBody
-from planning_through_contact.visualize.colors import COLORS
-from planning_through_contact.visualize.visualizer_2d import (
+from gcs_planar_pushing.deprecated.geometry.two_d.t_pusher import TPusher
+from gcs_planar_pushing.geometry.collision_geometry.t_pusher_2d import TPusher2d
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.rigid_body import RigidBody
+from gcs_planar_pushing.visualize.colors import COLORS
+from gcs_planar_pushing.visualize.visualizer_2d import (
     VisualizationForce2d,
     VisualizationPoint2d,
     VisualizationPolygon2d,

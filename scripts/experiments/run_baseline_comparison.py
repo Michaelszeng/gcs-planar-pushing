@@ -7,26 +7,26 @@ from typing import List
 import numpy as np
 from tqdm import tqdm
 
-from planning_through_contact.experiments.baseline_comparison.direct_trajectory_optimization import (
+from gcs_planar_pushing.experiments.baseline_comparison.direct_trajectory_optimization import (
     SmoothingSchedule,
     direct_trajopt_through_contact,
 )
-from planning_through_contact.experiments.utils import (
+from gcs_planar_pushing.experiments.utils import (
     create_output_folder,
     get_baseline_comparison_configs,
     get_default_experiment_plans,
 )
-from planning_through_contact.geometry.collision_geometry.box_2d import Box2d
-from planning_through_contact.geometry.planar.planar_pose import PlanarPose
-from planning_through_contact.geometry.planar.planar_pushing_trajectory import (
+from gcs_planar_pushing.geometry.collision_geometry.box_2d import Box2d
+from gcs_planar_pushing.geometry.planar.planar_pose import PlanarPose
+from gcs_planar_pushing.geometry.planar.planar_pushing_trajectory import (
     PlanarPushingTrajectory,
     SimplePlanarPushingTrajectory,
 )
-from planning_through_contact.planning.planar.planar_plan_config import (
+from gcs_planar_pushing.planning.planar.planar_plan_config import (
     PlanarPushingStartAndGoal,
 )
-from planning_through_contact.planning.planar.utils import create_plan
-from planning_through_contact.visualize.planar_pushing import (
+from gcs_planar_pushing.planning.planar.utils import create_plan
+from gcs_planar_pushing.visualize.planar_pushing import (
     visualize_initial_conditions,
 )
 
