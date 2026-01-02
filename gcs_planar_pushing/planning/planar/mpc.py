@@ -5,6 +5,10 @@ import numpy as np
 import numpy.typing as npt
 import pydrake.geometry.optimization as opt
 
+from gcs_planar_pushing.geometry.collision_geometry.collision_geometry import (
+    ContactLocation,
+    PolytopeContactLocation,
+)
 from gcs_planar_pushing.geometry.planar.face_contact import FaceContactMode
 from gcs_planar_pushing.geometry.planar.non_collision import (
     NonCollisionMode,
@@ -31,6 +35,8 @@ from gcs_planar_pushing.visualize.planar_pushing import (
     visualize_planar_pushing_trajectory,
 )
 
+GcsVertex = opt.GraphOfConvexSets.Vertex
+
 
 class PlanarPushingMPC:
     def __init__(
@@ -38,6 +44,7 @@ class PlanarPushingMPC:
         config: PlanarPlanConfig,
         start_and_goal: PlanarPushingStartAndGoal,
         solver_params: PlanarSolverParams,
+        plan: bool = True,
     ):
         """
         Formulate initial GCS Problem and do full solve
@@ -47,14 +54,47 @@ class PlanarPushingMPC:
         self.planner = PlanarPushingPlanner(config)
         self.planner.config.start_and_goal = start_and_goal
         self.planner.formulate_problem()
-        path = self.planner.plan_path(solver_params)
-        assert path is not None
-        self.original_path = path
-        self.original_traj = path.to_traj()
+
+        if plan:
+            path = self.planner.plan_path(solver_params, store_result=False)
+            assert path is not None
+            self.original_path = path
+            self.original_traj = path.to_traj()
+        else:
+            self.original_path = None
+            self.original_traj = None
 
         # Store "short" mode vertex, which is a copy of the original vertex in the GCS but with a shorter time to
         # account for the passage of time during MPC iterations.
-        self.previous_short_mode_vertex: Optional[GcsVertex] = None
+        self.previous_short_mode_vertex = None  # Optional[GcsVertex]
+
+        # Cache the collision-free region for the source vertex to avoid expensive recomputation
+        self.cached_source_region: Optional[PolytopeContactLocation] = None
+
+    def load_original_path(self, filename: str) -> None:
+        """
+        Loads the original path from a file.
+        """
+        all_pairs = self.planner._get_all_vertex_mode_pairs()
+        self.original_path = PlanarPushingPath.load(filename, self.planner.gcs, all_pairs)
+        self.original_traj = self.original_path.to_traj()
+
+    def _get_collision_free_region_at_time(self, t: float) -> PolytopeContactLocation:
+        """
+        Extract the collision-free region/mode that the pusher is in at time t.
+        """
+        # Get the current segment from the original trajectory
+        if t >= self.original_traj.end_time:
+            segment_idx = len(self.original_traj.traj_segments) - 1
+        else:
+            segment_idx = np.where(t < self.original_traj.end_times)[0][0]
+
+        # Extract region index from the corresponding segment
+        pair = self.original_path.pairs[segment_idx]
+        mode = pair.mode
+
+        # Return the collision-free region (stored in contact_location field)
+        return mode.contact_location
 
     def _get_remaining_mode_sequence(
         self,
@@ -71,7 +111,7 @@ class PlanarPushingMPC:
         if plan_start is None and t is None:  # Return full mode sequence
             return self.original_path.get_path_names()
 
-        traj = self.original_path.to_traj()
+        traj = self.original_traj
 
         if t is not None:
             best_t = t
@@ -174,10 +214,16 @@ class PlanarPushingMPC:
 
         # Update planner source
         # This creates a new source vertex and connects it to the existing GCS instance
-        self.planner._set_initial_poses(current_pusher_pose, current_slider_pose)
+        # First, we need to find the region/mode that the new source is in.
+        self.cached_source_region = self._get_collision_free_region_at_time(t)
+        # Then, call _set_initial_poses to set this new source vertex in the GCS
+        self.planner._set_initial_poses(
+            current_pusher_pose, current_slider_pose, collision_free_region=self.cached_source_region
+        )
 
         if mode_sequence is not None and len(mode_sequence) >= 2:
             first_mode_name = mode_sequence[1]
+
             all_pairs = self.planner._get_all_vertex_mode_pairs()
 
             # Check if we need to replace the first mode with a custom timed one
@@ -204,7 +250,6 @@ class PlanarPushingMPC:
                             original_mode.contact_location,
                             self.config,
                         )
-                    print(f"new_mode: {new_mode.name}")
 
                     if new_mode is not None:
                         # Enforce initial velocity constraint if applicable
@@ -284,7 +329,7 @@ class PlanarPushingMPC:
                         return
 
     def _update_mode_timing(self, t: float) -> None:
-        traj = self.original_path.to_traj()
+        traj = self.original_traj
 
         # Find current segment
         # If t > end_time, we are done / last segment
@@ -329,7 +374,7 @@ class PlanarPushingMPC:
 
         # If not provided, get from trajectory (for testing purposes -- in general, user should provide)
         if current_slider_pose is None or current_pusher_pose is None or current_pusher_velocity is None:
-            traj = self.original_path.to_traj()
+            traj = self.original_traj
             if current_slider_pose is None:
                 current_slider_pose = traj.get_slider_planar_pose(t)
             if current_pusher_pose is None:
@@ -346,7 +391,7 @@ class PlanarPushingMPC:
         self._update_mode_timing(t)
         self._update_initial_poses(t, current_slider_pose, current_pusher_pose, mode_sequence, current_pusher_velocity)
 
-        path = self.planner.plan_path(self.solver_params, active_vertices=mode_sequence)
+        path = self.planner.plan_path(self.solver_params, active_vertices=mode_sequence, store_result=False)
 
         # Save outputs if requested
         if path is not None and (save_video or save_traj) and output_folder:

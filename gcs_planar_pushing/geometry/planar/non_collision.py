@@ -181,6 +181,7 @@ class NonCollisionMode(AbstractContactMode):
         initial_or_final: Literal["initial", "final"],
         set_slider_pose: bool = True,
         terminal_cost: bool = False,
+        collision_free_region: Optional[PolytopeContactLocation] = None,
     ) -> "NonCollisionMode":
         p_WP = pusher_pose_world.pos()
         R_WB = slider_pose_world.two_d_rot_matrix()
@@ -190,7 +191,12 @@ class NonCollisionMode(AbstractContactMode):
         p_BP = R_WB.T @ (p_WP - p_WB)
         pusher_pose_body = PlanarPose(p_BP[0, 0], p_BP[1, 0], 0)
 
-        loc = find_first_matching_location(pusher_pose_body, config)
+        # Use provided collision-free region if available, otherwise search for it
+        if collision_free_region is not None:
+            loc = collision_free_region
+        else:
+            # Search for the first collision-free region/mode that the source/target is in
+            loc = find_first_matching_location(pusher_pose_body, config)
         mode_name = "source" if initial_or_final == "initial" else "target"
         mode = cls.create_from_plan_spec(
             loc,

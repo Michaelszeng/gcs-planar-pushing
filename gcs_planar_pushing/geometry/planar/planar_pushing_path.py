@@ -1,3 +1,5 @@
+import pickle
+from pathlib import Path
 from typing import Dict, List
 
 import numpy as np
@@ -88,15 +90,59 @@ def get_mode_variables_from_constraint_variables(
     return mode_vars
 
 
-def add_edge_constraints_to_prog(
-    edges: List[GcsEdge], prog: MathematicalProgram, pairs: List[VertexModePair]
-) -> None:
+def add_edge_constraints_to_prog(edges: List[GcsEdge], prog: MathematicalProgram, pairs: List[VertexModePair]) -> None:
     for edge, (pair_u, pair_v) in zip(edges, zip(pairs[:-1], pairs[1:])):
         for c in edge.GetConstraints():
-            vars = get_mode_variables_from_constraint_variables(
-                c.variables(), pair_u, pair_v
-            )
+            vars = get_mode_variables_from_constraint_variables(c.variables(), pair_u, pair_v)
             prog.AddConstraint(c.evaluator(), vars)
+
+
+class LoadedMathematicalProgramResult:
+    """
+    A mock MathematicalProgramResult that holds loaded variable values.
+    This avoids the instability of manually populating a MathematicalProgramResult
+    via SetSolution when not tied to a specific program.
+    """
+
+    def __init__(self, solution_map: Dict[int, float], optimal_cost: float = 0.0):
+        self.solution_map = solution_map
+        self.optimal_cost = optimal_cost
+        self.solver_id = "LoadedResult"
+
+    def GetSolution(
+        self, var: sym.Variable | npt.NDArray[np.object_] | List[sym.Variable]
+    ) -> float | npt.NDArray[np.float64]:
+        # Handle scalar symbolic variable
+        if isinstance(var, sym.Variable):
+            return self.solution_map.get(var.get_id(), np.nan)
+
+        # Handle numpy array of symbolic variables
+        elif isinstance(var, np.ndarray):
+            # Recursively vectorize
+            if var.dtype == object or var.dtype == sym.Variable:
+                vec_func = np.vectorize(lambda v: self.GetSolution(v))
+                return vec_func(var)
+            else:
+                # Assuming it might be numbers already?
+                return var
+
+        # Handle list
+        elif isinstance(var, list):
+            return np.array([self.GetSolution(v) for v in var])
+
+        return np.nan
+
+    def get_optimal_cost(self) -> float:
+        return self.optimal_cost
+
+    def get_solver_details(self):
+        class MockDetails:
+            optimizer_time = 0.0
+
+        return MockDetails()
+
+    def set_solution_result(self, res: SolutionResult):
+        pass
 
 
 class PlanarPushingPath:
@@ -114,6 +160,7 @@ class PlanarPushingPath:
         self.edges = edges_on_path
         self.result = result
         self.rounded_result = None
+        self._cached_rounded_vars = None  # Speed optimization -- cache rounded solution values
         self.config = pairs_on_path[0].mode.config
 
     @property
@@ -170,9 +217,7 @@ class PlanarPushingPath:
             #     assert np.all(_check_all_nan_or_zero(vertex_vars_not_on_path))
 
             # Assert that all decision varibles ON the optimal path are not NaN
-            vertex_vars_on_path = np.concatenate(
-                [result.GetSolution(v.x()) for v in vertex_path]
-            )
+            vertex_vars_on_path = np.concatenate([result.GetSolution(v.x()) for v in vertex_path])
             assert np.all(~np.isnan(vertex_vars_on_path))
 
         pairs_on_path = [all_pairs[v.name()] for v in vertex_path]
@@ -211,9 +256,7 @@ class PlanarPushingPath:
             #     assert np.all(_check_all_nan_or_zero(vertex_vars_not_on_path))
 
             # Assert that all decision varibles ON the optimal path are not NaN
-            vertex_vars_on_path = np.concatenate(
-                [result.GetSolution(v.x()) for v in vertex_path]
-            )
+            vertex_vars_on_path = np.concatenate([result.GetSolution(v.x()) for v in vertex_path])
             assert np.all(~np.isnan(vertex_vars_on_path))
 
         pairs_on_path = [all_pairs[v.name()] for v in vertex_path]
@@ -251,22 +294,16 @@ class PlanarPushingPath:
         }
 
         def _get_cost_vals(mode, vertex, costs):
-            cost_var_idxs = [
-                mode.get_variable_indices_in_gcs_vertex(c.variables()) for c in costs
-            ]
+            cost_var_idxs = [mode.get_variable_indices_in_gcs_vertex(c.variables()) for c in costs]
             cost_vars = [vertex.x()[idx] for idx in cost_var_idxs]
             cost_var_vals = [self.result.GetSolution(vars) for vars in cost_vars]
-            cost_vals = [
-                cost.evaluator().Eval(vals) for cost, vals in zip(costs, cost_var_vals)
-            ]
+            cost_vals = [cost.evaluator().Eval(vals) for cost, vals in zip(costs, cost_var_vals)]
             return cost_vals
 
         for key in contact_mode_costs.keys():
             for vertex, mode in self.pairs:
                 if isinstance(mode, FaceContactMode):
-                    contact_mode_costs[key].append(
-                        np.sum(_get_cost_vals(mode, vertex, mode.costs[key]))
-                    )
+                    contact_mode_costs[key].append(np.sum(_get_cost_vals(mode, vertex, mode.costs[key])))
 
         for key in contact_mode_sums.keys():
             contact_mode_sums[key] = np.sum(contact_mode_costs[key])
@@ -274,9 +311,7 @@ class PlanarPushingPath:
         for key in non_collision_costs.keys():
             for vertex, mode in self.pairs:
                 if isinstance(mode, NonCollisionMode):
-                    non_collision_costs[key].append(
-                        np.sum(_get_cost_vals(mode, vertex, mode.costs[key]))
-                    )
+                    non_collision_costs[key].append(np.sum(_get_cost_vals(mode, vertex, mode.costs[key])))
 
         for key in non_collision_sums.keys():
             non_collision_sums[key] = np.sum(non_collision_costs[key])
@@ -295,53 +330,41 @@ class PlanarPushingPath:
         rounded: bool = False,
     ) -> PlanarPushingTrajectory:
         if rounded:
-            assert self.rounded_result is not None
+            cost = self.rounded_cost
             return PlanarPushingTrajectory(
                 self.config,
                 self.get_rounded_vars(),
-                self.rounded_result.get_optimal_cost(),
+                cost,
             )
         else:
-            return PlanarPushingTrajectory(
-                self.config, self.get_vars(), self.result.get_optimal_cost()
-            )
+            cost = self.relaxed_cost
+            return PlanarPushingTrajectory(self.config, self.get_vars(), cost)
 
     def get_vars(self) -> List[AbstractModeVariables]:
-        vars_on_path = [
-            pair.mode.get_variable_solutions_for_vertex(pair.vertex, self.result)
-            for pair in self.pairs
-        ]
+        vars_on_path = [pair.mode.get_variable_solutions_for_vertex(pair.vertex, self.result) for pair in self.pairs]
         return vars_on_path
 
     def get_determinants(self, rounded: bool = False) -> List[float]:
         if rounded:
-            face_contact_vars = [
-                vars
-                for vars in self.get_rounded_vars()
-                if isinstance(vars, FaceContactVariables)
-            ]
+            face_contact_vars = [vars for vars in self.get_rounded_vars() if isinstance(vars, FaceContactVariables)]
         else:  # rounded == False
-            face_contact_vars = [
-                vars
-                for vars in self.get_vars()
-                if isinstance(vars, FaceContactVariables)
-            ]
+            face_contact_vars = [vars for vars in self.get_vars() if isinstance(vars, FaceContactVariables)]
         cos_ths = np.concatenate([var.cos_ths for var in face_contact_vars])
         sin_ths = np.concatenate([var.sin_ths for var in face_contact_vars])
 
-        determinants: List[float] = [
-            np.linalg.norm([cos, sin]) for cos, sin in zip(cos_ths, sin_ths)
-        ]
+        determinants: List[float] = [np.linalg.norm([cos, sin]) for cos, sin in zip(cos_ths, sin_ths)]
         return determinants
 
     def do_rounding(self, solver_params: PlanarSolverParams) -> None:
         self.rounded_result = self._do_nonlinear_rounding(solver_params)
 
     def get_rounded_vars(self) -> List[AbstractModeVariables]:
-        assert self.rounded_result is not None
-        vars_on_path = [
-            pair.mode.get_variable_solutions(self.rounded_result) for pair in self.pairs
-        ]
+        if self._cached_rounded_vars is not None:
+            return self._cached_rounded_vars
+        assert self.rounded_result is not None, (
+            "No rounded result available. Call do_rounding() first or load a path with rounded results."
+        )
+        vars_on_path = [pair.mode.get_variable_solutions(self.rounded_result) for pair in self.pairs]
         return vars_on_path
 
     def get_path_names(self) -> List[str]:
@@ -351,23 +374,105 @@ class PlanarPushingPath:
     def get_vertices(self) -> List[GcsVertex]:
         return [p.vertex for p in self.pairs]
 
+    def save(self, filename: str) -> None:
+        """
+        Saves the path to a pickle file.
+        NOTE: For now, this only saves the vertex sequence, decision variable values. Ignores
+        rounded solution values, solver metadata, etc.
+
+        It does NOT save the GCS graph itself. However, calling load() on a pkl file generated by
+        this function will return a PlanarPushingPath object.
+        """
+        data = {
+            "vertex_names": self.get_path_names(),
+            "vertex_values": {},
+            "optimal_cost": self.result.get_optimal_cost(),
+        }
+
+        for pair in self.pairs:
+            vertex = pair.vertex
+            # Get solution for this vertex's variables
+            vals = self.result.GetSolution(vertex.x())
+            data["vertex_values"][vertex.name()] = vals
+
+        with open(Path(filename), "wb") as f:
+            pickle.dump(data, f)
+
+    @classmethod
+    def load(
+        cls,
+        filename: str,
+        gcs: opt.GraphOfConvexSets,
+        all_pairs: Dict[str, VertexModePair],
+    ) -> "PlanarPushingPath":
+        with open(Path(filename), "rb") as f:
+            data = pickle.load(f)
+
+        vertex_names = data["vertex_names"]
+        vertex_values = data["vertex_values"]
+        optimal_cost = data.get("optimal_cost", 0.0)
+
+        solution_map = {}
+
+        pairs_on_path = []
+
+        for name in vertex_names:
+            if name not in all_pairs:
+                raise RuntimeError(
+                    f"Vertex {name} not found in provided all_pairs. Ensure the GCS graph is compatible."
+                )
+
+            pair = all_pairs[name]
+            pairs_on_path.append(pair)
+
+            vals = vertex_values[name]
+            vars_ = pair.vertex.x()
+
+            if len(vars_) != len(vals):
+                raise RuntimeError(f"Dimension mismatch for vertex {name}: vars {len(vars_)}, vals {len(vals)}")
+
+            for var, val in zip(vars_, vals):
+                solution_map[var.get_id()] = float(val)
+
+        # Create mock result
+        result = LoadedMathematicalProgramResult(solution_map, optimal_cost)  # type: ignore
+
+        # Reconstruct edges
+        edges_on_path = []
+        for i in range(len(pairs_on_path) - 1):
+            u = pairs_on_path[i].vertex
+            v = pairs_on_path[i + 1].vertex
+
+            # Find edge from u to v
+            # GCS doesn't seem to have a quick lookup for edges between u and v
+            # We iterate outgoing edges of u
+            found_edge = None
+            for edge in u.outgoing_edges():
+                if edge.v() == v:  # Check equality of vertices
+                    found_edge = edge
+                    break
+
+            if found_edge is None:
+                raise RuntimeError(f"No edge found between {u.name()} and {v.name()}")
+
+            edges_on_path.append(found_edge)
+
+        # Construct PlanarPushingPath object
+        path = cls(pairs_on_path, edges_on_path, result)  # type: ignore
+
+        return path
+
     def _construct_nonlinear_program(self) -> MathematicalProgram:
         prog = assemble_progs_from_contact_modes([p.mode for p in self.pairs])
         add_edge_constraints_to_prog(self.edges, prog, self.pairs)
         return prog
 
-    def _get_initial_guess_as_orig_variables(
-        self, scale_rot_values: bool = True
-    ) -> npt.NDArray[np.float64]:
+    def _get_initial_guess_as_orig_variables(self, scale_rot_values: bool = True) -> npt.NDArray[np.float64]:
         original_decision_var_idxs_in_vertices = [
-            mode.get_variable_indices_in_gcs_vertex(mode.prog.decision_variables())
-            for _, mode in self.pairs
+            mode.get_variable_indices_in_gcs_vertex(mode.prog.decision_variables()) for _, mode in self.pairs
         ]
         decision_vars_in_vertex_vars = [
-            vertex.x()[idxs]
-            for (vertex, _), idxs in zip(
-                self.pairs, original_decision_var_idxs_in_vertices
-            )
+            vertex.x()[idxs] for (vertex, _), idxs in zip(self.pairs, original_decision_var_idxs_in_vertices)
         ]
         all_vertex_vars_concatenated = np.concatenate(decision_vars_in_vertex_vars)
 
@@ -394,9 +499,7 @@ class PlanarPushingPath:
                     _scale_rot_vec(mode.variables.cos_th, mode.variables.sin_th)
                 elif isinstance(mode, FaceContactMode):
                     for k in range(mode.num_knot_points):
-                        _scale_rot_vec(
-                            mode.variables.cos_ths[k], mode.variables.sin_ths[k]
-                        )
+                        _scale_rot_vec(mode.variables.cos_ths[k], mode.variables.sin_ths[k])
                 else:
                     raise NotImplementedError(f"Mode {type(mode)} not supported")
 
@@ -469,9 +572,7 @@ class PlanarPushingPath:
         end = time.time()
         self.rounding_time = end - start
 
-        def _are_within_ranges_with_tolerance(
-            values, lower_bounds, upper_bounds, tolerance
-        ) -> npt.NDArray[np.bool_]:
+        def _are_within_ranges_with_tolerance(values, lower_bounds, upper_bounds, tolerance) -> npt.NDArray[np.bool_]:
             close_to_lower = np.isclose(values, lower_bounds, atol=tolerance)
             close_to_upper = np.isclose(values, upper_bounds, atol=tolerance)
             within_bounds = (values > lower_bounds) & (values < upper_bounds)
@@ -499,10 +600,7 @@ class PlanarPushingPath:
                         return _are_within_ranges_with_tolerance(val, lb, ub, TOL)
 
                     constraints_satisfied = np.concatenate(
-                        [
-                            _is_binding_satisfied(binding)
-                            for binding in prog.GetAllConstraints()
-                        ]
+                        [_is_binding_satisfied(binding) for binding in prog.GetAllConstraints()]
                     )
 
                     # if result.get_optimal_cost() <= self.result.get_optimal_cost():
@@ -513,18 +611,14 @@ class PlanarPushingPath:
                     #     if not np.isclose(result.get_optimal_cost(), calculated_cost):
                     #         breakpoint()
 
-                    cost_upper_bound = (
-                        result.get_optimal_cost() >= self.result.get_optimal_cost()
-                    )
+                    cost_upper_bound = result.get_optimal_cost() >= self.result.get_optimal_cost()
                     solution_feasible = np.all(constraints_satisfied)
                     if solution_feasible and cost_upper_bound:
                         result.set_solution_result(SolutionResult.kSolutionFound)
 
         if solver_params.assert_rounding_res:
             if not result.is_success():
-                print(
-                    f"Solution was not successfull. Solution result: {result.get_solution_result()} "
-                )
+                print(f"Solution was not successfull. Solution result: {result.get_solution_result()} ")
                 raise RuntimeError("Rounding was not succesfull.")
 
         return result

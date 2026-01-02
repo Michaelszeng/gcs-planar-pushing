@@ -23,6 +23,24 @@ class ContactMode(Enum):
 
 # TODO: move this?
 class PolytopeContactLocation(NamedTuple):
+    """
+    A general-purpose indexing structure used to identify locations on a polytope.
+
+    NOTE: Despite the name "ContactLocation", this structure serves TWO different purposes:
+
+    1. **During contact modes (FaceContactMode)**:
+       Specifies which face the pusher is in contact with.
+       Example: PolytopeContactLocation(FACE, 2) = "pusher is contacting face #2"
+
+    2. **During non-collision modes (NonCollisionMode)**:
+       Specifies which collision-free region the pusher is in (NOT which face it's touching).
+       Example: PolytopeContactLocation(FACE, 2) = "pusher is in collision-free region #2"
+
+    For simple shapes (e.g., boxes), there's a 1-to-1 mapping between faces and collision-free
+    regions (face_idx == region_idx). For complex shapes, multiple faces can map to the same
+    collision-free region, but the idx still refers to the face index.
+    """
+
     pos: ContactLocation
     idx: int
 
@@ -56,9 +74,7 @@ class CollisionGeometry(ABC):
     def faces(self) -> List[Hyperplane]: ...
 
     @abstractmethod
-    def get_proximate_vertices_from_location(
-        self, location: PolytopeContactLocation
-    ) -> List[npt.NDArray[np.float64]]:
+    def get_proximate_vertices_from_location(self, location: PolytopeContactLocation) -> List[npt.NDArray[np.float64]]:
         pass
 
     @abstractmethod
@@ -68,9 +84,7 @@ class CollisionGeometry(ABC):
         pass
 
     @abstractmethod
-    def get_hyperplane_from_location(
-        self, location: PolytopeContactLocation
-    ) -> Hyperplane:
+    def get_hyperplane_from_location(self, location: PolytopeContactLocation) -> Hyperplane:
         pass
 
     @abstractmethod
@@ -93,9 +107,7 @@ class CollisionGeometry(ABC):
     def get_face_length(self, location: PolytopeContactLocation) -> float:
         pass
 
-    def get_shortest_vec_from_com_to_loc(
-        self, location: PolytopeContactLocation
-    ) -> npt.NDArray[np.float64]:
+    def get_shortest_vec_from_com_to_loc(self, location: PolytopeContactLocation) -> npt.NDArray[np.float64]:
         v1, v2 = self.get_proximate_vertices_from_location(location)
         vec = (v1 + v2) / 2
         return vec
@@ -148,9 +160,7 @@ class CollisionGeometry(ABC):
         lam = u1.T.dot(u2).item() / np.linalg.norm(u2) ** 2
         return lam
 
-    def get_p_Bc_from_lam(
-        self, lam: float, loc: PolytopeContactLocation
-    ) -> npt.NDArray[np.float64]:
+    def get_p_Bc_from_lam(self, lam: float, loc: PolytopeContactLocation) -> npt.NDArray[np.float64]:
         """
         Get the position of the contact point in the body frame.
 
@@ -162,9 +172,7 @@ class CollisionGeometry(ABC):
         p_Bc = lam * pv1 + (1 - lam) * pv2
         return p_Bc
 
-    def get_p_BP_from_lam(
-        self, lam: float, loc: PolytopeContactLocation, radius: float
-    ) -> npt.NDArray[np.float64]:
+    def get_p_BP_from_lam(self, lam: float, loc: PolytopeContactLocation, radius: float) -> npt.NDArray[np.float64]:
         """
         Get the position of the pusher in the body frame (note: requires the
         radius to compute the position!)
@@ -181,9 +189,7 @@ class CollisionGeometry(ABC):
         p_BP = radius_offset + p_Bc
         return p_BP
 
-    def get_force_comps_from_f_c_B(
-        self, f_c_B, loc: PolytopeContactLocation
-    ) -> Tuple[float, float]:
+    def get_force_comps_from_f_c_B(self, f_c_B, loc: PolytopeContactLocation) -> Tuple[float, float]:
         n, t = self.get_norm_and_tang_vecs_from_location(loc)
         c_n = f_c_B.T.dot(n).item()
         c_f = f_c_B.T.dot(t).item()
@@ -196,9 +202,7 @@ class CollisionGeometry(ABC):
 
     T = TypeVar("T", bound=Any)
 
-    def get_p_Wv_i(
-        self, i: int, R_WB: npt.NDArray[T], p_WB: npt.NDArray[T]
-    ) -> npt.NDArray[T]:
+    def get_p_Wv_i(self, i: int, R_WB: npt.NDArray[T], p_WB: npt.NDArray[T]) -> npt.NDArray[T]:
         """
         Get the position of vertex i in the world frame, provided p_WB and R_WB.
         """

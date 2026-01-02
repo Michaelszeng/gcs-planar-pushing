@@ -88,9 +88,7 @@ class NonCollisionSubGraph:
 
         vertex_names = [f"{subgraph_name}_{mode.name}" for mode in non_collision_modes]
         sets = [mode.get_convex_set() for mode in non_collision_modes]
-        non_collision_vertices = [
-            gcs.AddVertex(s, name) for s, name in zip(sets, vertex_names)
-        ]
+        non_collision_vertices = [gcs.AddVertex(s, name) for s, name in zip(sets, vertex_names)]
 
         for m, v in zip(non_collision_modes, non_collision_vertices):
             m.add_cost_to_vertex(v)
@@ -105,23 +103,15 @@ class NonCollisionSubGraph:
                 if i <= j:
                     gcs_add_edge_with_continuity(
                         gcs,
-                        VertexModePair(
-                            non_collision_vertices[i], non_collision_modes[i]
-                        ),
-                        VertexModePair(
-                            non_collision_vertices[j], non_collision_modes[j]
-                        ),
+                        VertexModePair(non_collision_vertices[i], non_collision_modes[i]),
+                        VertexModePair(non_collision_vertices[j], non_collision_modes[j]),
                         continuity_on_pusher_velocities=config.continuity_on_pusher_velocity,
                     )
                 else:
                     gcs_add_edge_with_continuity(
                         gcs,
-                        VertexModePair(
-                            non_collision_vertices[j], non_collision_modes[j]
-                        ),
-                        VertexModePair(
-                            non_collision_vertices[i], non_collision_modes[i]
-                        ),
+                        VertexModePair(non_collision_vertices[j], non_collision_modes[j]),
+                        VertexModePair(non_collision_vertices[i], non_collision_modes[i]),
                         continuity_on_pusher_velocities=config.continuity_on_pusher_velocity,
                     )
             else:
@@ -157,11 +147,7 @@ class NonCollisionSubGraph:
         """
 
         position_sets = [mode.get_convex_set_in_positions() for mode in modes]
-        edge_idxs = [
-            (i, j)
-            for (i, u), (j, v) in combinations(enumerate(position_sets), 2)
-            if u.IntersectsWith(v)
-        ]
+        edge_idxs = [(i, j) for (i, u), (j, v) in combinations(enumerate(position_sets), 2) if u.IntersectsWith(v)]
         return edge_idxs
 
     def connect_with_continuity_constraints(
@@ -176,22 +162,19 @@ class NonCollisionSubGraph:
             self.non_collision_modes[subgraph_connection_idx],
         )
         if incoming:
-            gcs_add_edge_with_continuity(
-                self.gcs, external_connection, subgraph_connection
-            )
+            gcs_add_edge_with_continuity(self.gcs, external_connection, subgraph_connection)
         if outgoing:
-            gcs_add_edge_with_continuity(
-                self.gcs, subgraph_connection, external_connection
-            )
+            gcs_add_edge_with_continuity(self.gcs, subgraph_connection, external_connection)
 
     def _set_initial_or_final_poses(
         self,
         pusher_pose: PlanarPose,
         slider_pose: PlanarPose,
         initial_or_final: Literal["initial", "final"],
+        collision_free_region: Optional[PolytopeContactLocation] = None,
     ) -> None:
         mode = NonCollisionMode.create_source_or_target_mode(
-            self.config, slider_pose, pusher_pose, initial_or_final
+            self.config, slider_pose, pusher_pose, initial_or_final, collision_free_region=collision_free_region
         )
         vertex = self.gcs.AddVertex(mode.get_convex_set(), mode.name)
 
@@ -200,9 +183,7 @@ class NonCollisionSubGraph:
             kwargs = {"outgoing": False, "incoming": True}
         else:
             kwargs = {"outgoing": True, "incoming": False}
-        self.connect_with_continuity_constraints(
-            mode.contact_location.idx, pair, **kwargs
-        )
+        self.connect_with_continuity_constraints(mode.contact_location.idx, pair, **kwargs)
 
         if initial_or_final == "initial":
             self.source = pair
@@ -213,17 +194,17 @@ class NonCollisionSubGraph:
         self,
         pusher_initial_pose: PlanarPose,
         slider_initial_pose: PlanarPose,
+        collision_free_region: Optional[PolytopeContactLocation] = None,
     ) -> None:
-        self._set_initial_or_final_poses(
-            pusher_initial_pose, slider_initial_pose, "initial"
-        )
+        self._set_initial_or_final_poses(pusher_initial_pose, slider_initial_pose, "initial", collision_free_region)
 
     def set_final_poses(
         self,
         pusher_final_pose: PlanarPose,
         slider_final_pose: PlanarPose,
+        collision_free_region: Optional[PolytopeContactLocation] = None,
     ) -> None:
-        self._set_initial_or_final_poses(pusher_final_pose, slider_final_pose, "final")
+        self._set_initial_or_final_poses(pusher_final_pose, slider_final_pose, "final", collision_free_region)
 
     def get_all_vertex_mode_pairs(self) -> Dict[str, VertexModePair]:
         all_pairs = {

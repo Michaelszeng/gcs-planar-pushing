@@ -242,11 +242,12 @@ class PlanarPushingPlanner:
         self,
         pusher_pose: PlanarPose,
         slider_pose: PlanarPose,
+        collision_free_region: Optional["PolytopeContactLocation"] = None,
     ) -> None:
         if self.config.allow_teleportation or not self.config.use_entry_and_exit_subgraphs:
-            self.source = self._add_single_source_or_target(pusher_pose, slider_pose, "initial")
+            self.source = self._add_single_source_or_target(pusher_pose, slider_pose, "initial", collision_free_region)
         else:
-            self.source_subgraph.set_initial_poses(pusher_pose, slider_pose)
+            self.source_subgraph.set_initial_poses(pusher_pose, slider_pose, collision_free_region)
             self.source = self.source_subgraph.source
 
     def _set_target_poses(
@@ -265,6 +266,7 @@ class PlanarPushingPlanner:
         pusher_pose: PlanarPose,
         slider_pose: PlanarPose,
         initial_or_final: Literal["initial", "final"],
+        collision_free_region: Optional["PolytopeContactLocation"] = None,
     ) -> VertexModePair:
         set_slider_pose = True
         terminal_cost = False
@@ -276,8 +278,11 @@ class PlanarPushingPlanner:
             initial_or_final,
             set_slider_pose=set_slider_pose,
             terminal_cost=terminal_cost,
+            collision_free_region=collision_free_region,
         )
+
         vertex = self.gcs.AddVertex(mode.get_convex_set(), mode.name)
+
         pair = VertexModePair(vertex, mode)
 
         if terminal_cost:  # add cost on target vertex
@@ -442,18 +447,20 @@ class PlanarPushingPlanner:
         edge_path = self.gcs.GetSolutionPath(self.source.vertex, self.target.vertex, result)
 
         # Create the PlanarPushingPath from the edges
+        all_pairs = self._get_all_vertex_mode_pairs()
+
         path = PlanarPushingPath.from_path(
             self.gcs,
             result,
             edge_path,
-            self._get_all_vertex_mode_pairs(),
+            all_pairs,
             assert_nan_values=solver_params.assert_nan_values,
         )
 
         return [path]
 
     def _plan_paths(
-        self, solver_params: PlanarSolverParams, active_vertices: Optional[List[str]] = None
+        self, solver_params: PlanarSolverParams, active_vertices: Optional[List[str]] = None, store_result: bool = True
     ) -> Optional[List[PlanarPushingPath]]:
         """
         Plans a path. Note that no rounding is done at this step.
@@ -462,7 +469,9 @@ class PlanarPushingPlanner:
         assert self.target is not None
 
         gcs_result = self._solve(solver_params, active_vertices)
-        self.relaxed_gcs_result = gcs_result
+
+        if store_result:
+            self.relaxed_gcs_result = gcs_result
 
         if solver_params.assert_result:
             assert gcs_result.is_success()
@@ -497,7 +506,7 @@ class PlanarPushingPlanner:
             if solver_params.print_rounding_details:
                 print(f"num rounded paths: {len(paths)}")
 
-            return paths
+        return paths
 
     def _get_rounded_paths(
         self, solver_params: PlanarSolverParams, paths: List[PlanarPushingPath]
@@ -543,9 +552,10 @@ class PlanarPushingPlanner:
         return path
 
     def plan_path(
-        self, solver_params: PlanarSolverParams, active_vertices: Optional[List[str]] = None
+        self, solver_params: PlanarSolverParams, active_vertices: Optional[List[str]] = None, store_result: bool = True
     ) -> Optional[PlanarPushingPath]:
-        paths = self._plan_paths(solver_params, active_vertices)
+        paths = self._plan_paths(solver_params, active_vertices, store_result=store_result)
+
         if paths is None:
             return None
 
